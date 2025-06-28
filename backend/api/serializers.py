@@ -89,7 +89,7 @@ class UserMeSerializer(UserSignUpSerializer):
         model = User
         fields = [
             'email', 'id', 'username', 'first_name',
-            'last_name', 'password', 'avatar'
+            'last_name', 'password', 'avatar', 'is_subscribed'
         ]
 
     def get_id(self, obj):

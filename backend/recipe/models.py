@@ -144,7 +144,7 @@ class Favorite(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='Favorited'
+        related_name='Favorite'
     )
     user = models.ForeignKey(
         Recipe,
@@ -155,7 +155,6 @@ class Favorite(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные' # дичь, достаточно vb без plural
-
 
 
 class ShoppingCart(models.Model):
@@ -170,8 +169,8 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='Shopping')
-    
+        related_name='Shoppings')
+
     class Meta:
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзины покупок'

@@ -23,7 +23,38 @@ class User(AbstractUser):
 
     is_subscribed = models.BooleanField(default=False, verbose_name='Подписан')
 
+    follows = models.ManyToManyField(
+        'self',
+        through='Follow',
+        related_name='followers',
+        symmetrical=False,
+        verbose_name='Подписки'
+    )
+
     def __str__(self):
         return self.username
 
-    # подписки и избранное
+
+class Follow(models.Model):
+    """Модель подписок."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower_set',
+        verbose_name='Подписчик'
+    )
+    following = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following_set',
+        verbose_name='Подписка на'
+    )
+
+    class Meta:
+        unique_together = ('user', 'following')
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+
+    def __str__(self):
+        return f'{self.user} подписан на {self.following}'
