@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework import filters, status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -6,10 +7,11 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 
+
 from .serializers import (UserMeSerializer, UserSignUpSerializer,
                           AvatarSerializer, PasswordSerializer,
                           TagSerializer, IngredientSerializer,
-                          RecipeSerializer)
+                          RecipeCreateSerializer)
 from recipe.models import Tag, Ingredient, Recipe
 
 User = get_user_model()
@@ -29,7 +31,7 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'me']:
             return UserMeSerializer
         return UserSignUpSerializer
 
@@ -59,9 +61,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'DELETE':
             user = request.user
-            if user.avatar:
-                user.avatar = None
-                user.save()
+            user.avatar = settings.DEFAULT_AVATAR
+            user.save()
             return Response(status.HTTP_204_NO_CONTENT)
         
     @action(detail=False,
@@ -71,15 +72,17 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer_class=PasswordSerializer
     )
     def set_password(self, request):
-        serializer = self.get_serializer(request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         user = request.user
-        if user.check_password(serializer.data['current_password']):
-            user.set_password(serializer.data['new_password'])
+        if user.check_password(serializer.validated_data['current_password']):
+            user.set_password(serializer.validated_data['new_password'])
             user.save()
             return Response(
-                'Пароль успешно изменен', 
+                'Пароль успешно изменен',
                 status.HTTP_204_NO_CONTENT
             )
+        return Response('Пароли не совпадают', status.HTTP_403_NOT_FOUND)
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -95,6 +98,11 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    serializer_class = RecipeSerializer
+    serializer_class = RecipeCreateSerializer
     queryset = Recipe.objects.all()
     http_method_names = ('get', 'post') # Потом убери!                           вава
+
+    # def get_serializer_class(self):
+    #     if self.action == 'retrieve':
+    #         return UserMeSerializer
+    #     return UserSignUpSerializer

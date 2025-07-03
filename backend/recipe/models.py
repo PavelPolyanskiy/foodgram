@@ -71,7 +71,7 @@ class Recipe(models.Model):
     )
     ingredients = models.ManyToManyField(
         Ingredient,
-        through='IngredientToRecipe',
+        through='IngredientRecipe',
         verbose_name='Ингредиенты для рецепта'
     )
     tags = models.ManyToManyField(
@@ -94,7 +94,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class IngredientToRecipe(models.Model):
+class IngredientRecipe(models.Model):
     """Промежуточная таблица для ingredient и recipe."""
 
     ingredient = models.ForeignKey(
@@ -106,7 +106,7 @@ class IngredientToRecipe(models.Model):
         on_delete=models.CASCADE
     )
 
-    amount = models.IntegerField()
+    amount = models.PositiveIntegerField(verbose_name='Количество')
     
     class Meta:
         unique_together = ('ingredient', 'recipe')

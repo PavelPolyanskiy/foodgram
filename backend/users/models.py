@@ -1,5 +1,9 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
 
 from .validators import username_validator, validate_username_me
 
@@ -20,8 +24,6 @@ class User(AbstractUser):
         default='users/default_avatar.png',
         verbose_name='Аватар пользователя'
     )
-
-    is_subscribed = models.BooleanField(default=False, verbose_name='Подписан')
 
     follows = models.ManyToManyField(
         'self',

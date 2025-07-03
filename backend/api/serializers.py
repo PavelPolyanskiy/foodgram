@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
 
-from recipe.models import Recipe, Tag, TagToRecipe, Ingredient
+from recipe.models import Recipe, Tag, Ingredient
 
 
 User = get_user_model()
@@ -89,7 +89,7 @@ class UserMeSerializer(UserSignUpSerializer):
         model = User
         fields = [
             'email', 'id', 'username', 'first_name',
-            'last_name', 'password', 'avatar', 'is_subscribed'
+            'last_name', 'password', 'avatar',
         ]
 
     def get_id(self, obj):
@@ -98,10 +98,15 @@ class UserMeSerializer(UserSignUpSerializer):
     def get_avatar_url(self, obj): # возвращает немного не то что нужно ааааааааааааааааааааааааааааааааааа "avatar": "http://foodgram.example.org/media/users/default_avatar.png"
         if obj.avatar:
             return obj.avatar.url
-        return None
+        return None                   
 
-class AvatarSerializer(serializers.Serializer):
+
+class AvatarSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ['avatar']
 
     def update(self, instance, validated_data):
         instance.avatar = validated_data.get('avatar', instance.avatar)
@@ -127,10 +132,11 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
-class RecipeSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, required=False)
-    author = UserMeSerializer(many=True)
+class RecipeCreateSerializer(serializers.ModelSerializer):
     ingredients = IngredientSerializer(many=True)
+    tags = TagSerializer(many=True, required=False)
+    image = Base64ImageField(allow_null=True)
+    
     
     class Meta:
         model = Recipe
