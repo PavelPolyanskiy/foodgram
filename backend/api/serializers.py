@@ -129,14 +129,12 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, required=False)
-    author = UserSignUpSerializer()
-
-    ### TODO
-
-
+    author = UserMeSerializer(many=True)
+    ingredients = IngredientSerializer(many=True)
+    
     class Meta:
         model = Recipe
-        fields = (
-            'id', 'author', 'ingredients', 'is_favorited',
-            'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
-        )
+        fields = ('id', 'tags', 'author', 'ingredients', 'name', 'image', 'text', 'cooking_time')
+
+
+    

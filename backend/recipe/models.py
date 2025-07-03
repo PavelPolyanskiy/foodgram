@@ -76,25 +76,14 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(
         Tag,
-        through='TagToRecipe',
         verbose_name='Теги'
     )
     cooking_time = models.PositiveIntegerField(
         verbose_name='Время приготовления'
     )
-    pub_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата публикации'
-    )
-
-    # is_favorited = models.ForeignKey(
-    #     'Favorite',
-    #     on_delete=models.CASCADE
-    # )
-
-    # is_in_shopping_cart = models.BooleanField(
-    #     default=False,
-    #     verbose_name='В списке покупок'
+    # pub_date = models.DateTimeField(  # не обязательынй функционал
+    #     auto_now_add=True,
+    #     verbose_name='Дата публикации'
     # )
 
     class Meta:
@@ -103,22 +92,6 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class TagToRecipe(models.Model):
-    """Промежуточная таблица tag и recipe."""
-
-    tag = models.ForeignKey(
-        Tag,
-        on_delete=models.CASCADE,
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return f'{self.tag} {self.recipe}'
 
 
 class IngredientToRecipe(models.Model):
@@ -133,6 +106,11 @@ class IngredientToRecipe(models.Model):
         on_delete=models.CASCADE
     )
 
+    amount = models.IntegerField()
+    
+    class Meta:
+        unique_together = ('ingredient', 'recipe')
+
     def __str__(self):
         return f'{self.ingredient} {self.recipe}'
 
@@ -140,36 +118,34 @@ class IngredientToRecipe(models.Model):
 class Favorite(models.Model):
     """Модель избранного."""
 
-    is_favorited = models.BooleanField(default=False) # надо ли???????
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='Favorite'
+        related_name='favorite'
     )
     user = models.ForeignKey(
-        Recipe,
+        User,
         on_delete=models.CASCADE,
-        related_name='Favorited'
+        related_name='favorited'
     )
 
     class Meta:
         verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранные' # дичь, достаточно vb без plural
+        verbose_name_plural = 'Избранные'
 
 
 class ShoppingCart(models.Model):
     """Модель корзины покупок."""
 
-    is_in_shopping_cart = models.BooleanField(default=False) # надо ли???????????????
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='Shopping'
+        related_name='shopping'
     )
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='Shoppings')
+        related_name='shoppings')
 
     class Meta:
         verbose_name = 'Корзина покупок'

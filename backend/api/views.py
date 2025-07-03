@@ -10,7 +10,7 @@ from .serializers import (UserMeSerializer, UserSignUpSerializer,
                           AvatarSerializer, PasswordSerializer,
                           TagSerializer, IngredientSerializer,
                           RecipeSerializer)
-from recipe.models import Tag, Ingredient
+from recipe.models import Tag, Ingredient, Recipe
 
 User = get_user_model()
 
@@ -96,3 +96,5 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
+    queryset = Recipe.objects.all()
+    http_method_names = ('get', 'post') # Потом убери!                           вава
