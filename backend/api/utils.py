@@ -23,7 +23,7 @@ class Base64ImageField(serializers.ImageField):
     
 
 class ShoppingCartDownloader:
-    """Класс для создания файла с ингредиентами и скачивания"""
+    """Класс для создания файла с ингредиентами и его скачивания."""
     @staticmethod
     def download_shopping_list(request):
         dir_path = Path(settings.MEDIA_ROOT) / 'shopping_cart'

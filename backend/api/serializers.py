@@ -7,10 +7,9 @@ from recipe.models import (Recipe, Tag, IngredientRecipe,
                            Ingredient, Favorite, ShoppingCart)
 from users.models import Follow
 from .utils import Base64ImageField
-
-from .constants import (MAX_EMAIL_LENGTH, MAX_FIELD_LENGTH,
-                        MIN_PASSWORD_LENGTH, MIN_ING_AMOUNT,
+from .constants import (MAX_EMAIL_LENGTH, MAX_FIELD_LENGTH, MIN_ING_AMOUNT,
                         MAX_ING_AMOUNT)
+from .validators import password_validator
 
 
 User = get_user_model()
@@ -67,15 +66,8 @@ class UserSignUpSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        if (
-            value.isdigit()
-            or value.isalpha()
-            or len(value) < MIN_PASSWORD_LENGTH
-        ):
-            raise ValidationError(
-                'Пароль должен состоять из цифр И букв, '
-                'а так же быть длиннее 7 символов.'
-            )
+        password_validator(value)
+
         return value
 
 
@@ -123,15 +115,7 @@ class PasswordSerializer(serializers.Serializer):
     )
 
     def validate_password(self, value):
-        if (
-            value.isdigit()
-            or value.isalpha()
-            or len(value) < MIN_PASSWORD_LENGTH
-        ):
-            raise ValidationError(
-                'Пароль должен состоять из цифр И букв, '
-                'а так же быть длиннее 7 символов.'
-            )
+        password_validator(value)
         return value
 
 
@@ -283,9 +267,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         ingredients = validated_data.pop('ingredients', [])
         tags = validated_data.pop('tags', [])
-        instance.name = validated_data.get('name')
-        instance.text = validated_data.get('text')
-        instance.cooking_time = validated_data.get('cooking_time')
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
         instance.tags.clear()
 

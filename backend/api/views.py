@@ -1,15 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
-
-
 
 from .serializers import (UserSerializer, UserSignUpSerializer,
                           AvatarSerializer, PasswordSerializer,
@@ -20,10 +16,10 @@ from .serializers import (UserSerializer, UserSignUpSerializer,
 from recipe.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart
 from users.models import Follow
 from .utils import ShoppingCartDownloader
+from .filters import recipe_filter
+from .permissions import AutorOrReadOnly
 
 User = get_user_model()
-
-# Create your views here.
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -34,7 +30,7 @@ class UserViewSet(viewsets.ModelViewSet):
     #http_method_names = ['get', 'post', 'patch', 'delete']
     #filter_backends = [filters.SearchFilter]
     #search_fields = ['username']
-    #pagination_class = LimitOffsetPagination
+    pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
         if self.action in ['me', 'retrieve', 'list']:
@@ -149,14 +145,20 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeReadSerializer
     queryset = Recipe.objects.all()
-    http_method_names = ('get', 'post', 'patch', 'delete') # Потом убери!                           вава
-    # filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    # search_fields = ['slug']
-    # pagination_class = LimitOffsetPagination
+    http_method_names = ('get', 'post', 'patch', 'delete')
+    pagination_class = LimitOffsetPagination
+    permission_classes = (AutorOrReadOnly, )
+
+    def get_queryset(self):
+
+        return recipe_filter(Recipe, self.request)
+
+
 
     def get_serializer_class(self):
         if self.action in ['create', 'partial_update']:
             return RecipeCreateUpdateSerializer
+
         return RecipeReadSerializer
 
     @action(

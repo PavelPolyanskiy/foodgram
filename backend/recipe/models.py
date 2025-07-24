@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
-from .constants import NAME_LENGTH, SLUG_LENGTH
+from api.constants import NAME_LENGTH, SLUG_LENGTH
 
 User = get_user_model()
 
@@ -105,12 +105,15 @@ class IngredientRecipe(models.Model):
     )
 
     amount = models.PositiveIntegerField(verbose_name='Количество')
-    
+
     class Meta:
         unique_together = ('ingredient', 'recipe')
 
     def __str__(self):
-        return f'{self.ingredient}, {self.amount}, {self.ingredient.measurement_unit}'
+        return (
+            f'{self.ingredient},'
+            f'{self.amount}, {self.ingredient.measurement_unit}'
+        )
 
 
 class Favorite(models.Model):
@@ -140,6 +143,7 @@ class ShoppingCart(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='shop_carts'
     )
     user = models.ForeignKey(
         User,
