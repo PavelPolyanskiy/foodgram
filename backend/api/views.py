@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from rest_framework import filters, status, viewsets
@@ -10,17 +11,19 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 
 
-from .serializers import (UserMeSerializer, UserSignUpSerializer,
+from .serializers import (UserSerializer, UserSignUpSerializer,
                           AvatarSerializer, PasswordSerializer,
                           TagSerializer, IngredientSerializer,
-                          RecipeCreateSerializer, FollowSerializer,
-                          RecipeReadSerializer)
-from recipe.models import Tag, Ingredient, Recipe
+                          RecipeCreateUpdateSerializer, FollowSerializer,
+                          RecipeReadSerializer, FavoriteSerializer,
+                          ShoppingCartSerializer, SubscriptionsSerializer)
+from recipe.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart
+from users.models import Follow
+from .utils import ShoppingCartDownloader
 
 User = get_user_model()
 
 # Create your views here.
-
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -31,20 +34,21 @@ class UserViewSet(viewsets.ModelViewSet):
     #http_method_names = ['get', 'post', 'patch', 'delete']
     #filter_backends = [filters.SearchFilter]
     #search_fields = ['username']
-    pagination_class = LimitOffsetPagination
+    #pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
-        if self.action in ['retrieve', 'me']:
-            return UserMeSerializer
+        if self.action in ['me', 'retrieve', 'list']:
+            return UserSerializer
         if self.action == 'set_password':
             return PasswordSerializer
-
+ 
+        return UserSignUpSerializer
 
     @action(
         detail=False,
         methods=['get'],
         permission_classes=(IsAuthenticated, ),
-        serializer_class=UserMeSerializer
+        serializer_class=UserSerializer
     )
     def me(self, request):
         user = request.user
@@ -52,23 +56,28 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    
-    @action(detail=False,
-            methods=['put', 'delete'],
-            permission_classes=(IsAuthenticated, ),
-            url_path='me/avatar/',
-            serializer_class=AvatarSerializer
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
+        permission_classes=(IsAuthenticated, ),
+        url_path='me/avatar',
+        serializer_class=AvatarSerializer
     )
     def avatar(self, request):
+        user = request.user
         if request.method == 'PUT':
-            serializer = self.get_serializer(request.data)
+            serializer = AvatarSerializer(instance=user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         if request.method == 'DELETE':
             user = request.user
             user.avatar = settings.DEFAULT_AVATAR
             user.save()
-            return Response(status.HTTP_204_NO_CONTENT)
-        
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
     @action(detail=False,
             methods=['post'],
             permission_classes=(IsAuthenticated, ),
@@ -86,48 +95,122 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             return Response(
                 'Пароль успешно изменен',
-                status.HTTP_204_NO_CONTENT
+                status=status.HTTP_204_NO_CONTENT
             )
+
         return Response('Пароли не совпадают', status.HTTP_404_NOT_FOUND)
 
 
-class TagViewSet(viewsets.ModelViewSet):
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=(IsAuthenticated, ),
+        url_path='subscribe',
+    )
+    def subscribe(self, request, pk):
+        user = request.user
+        author = get_object_or_404(User, id=pk)
+        data = {'following': author.id}
+
+        if request.method == 'POST':
+            serializer = FollowSerializer(data=data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            follow = Follow.objects.filter(user=user.id, following=author.id)
+            if follow.exists():
+                follow.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Подписка не найдена.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubscribtionsViewSet(viewsets.ReadOnlyModelViewSet):
+    http_method_names = ('get',)
+    serializer_class = SubscriptionsSerializer
+    permission_classes = (IsAuthenticated, )
+
+    def get_queryset(self):
+        user = self.request.user
+        return User.objects.filter(following__user=user)
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
-    http_method_names = ('get', 'post') # Потом убери!                           вава
 
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
-    http_method_names = ('get', 'post') # Потом убери!                           вава
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeReadSerializer
     queryset = Recipe.objects.all()
-    http_method_names = ('get', 'post') # Потом убери!                           вава
+    http_method_names = ('get', 'post', 'patch', 'delete') # Потом убери!                           вава
     # filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     # search_fields = ['slug']
     # pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return RecipeCreateSerializer
+        if self.action in ['create', 'partial_update']:
+            return RecipeCreateUpdateSerializer
         return RecipeReadSerializer
 
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=(IsAuthenticated, ),
+        url_path='favorite',
+    )
+    def favorite(self, request, pk):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
 
-class FollowViewSet(viewsets.GenericViewSet,
-                    CreateModelMixin, ListModelMixin):
-    """Вьюсет для модели Follow."""
+        if request.method == 'POST':
+            data = {'user': user.id, 'recipe': recipe.id}
+            serializer = FavoriteSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    serializer_class = FollowSerializer
-    permission_classes = (IsAuthenticated, )
-    filter_backends = (filters.SearchFilter, )
-    search_fields = ('following__username',) ############################ ne nugno vrode
+        if request.method == 'DELETE':
+            favorite = Favorite.objects.filter(user=user.id,recipe=recipe.id)
+            if favorite.exists():
+                favorite.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Рецепт не найден в избранном.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
-        return self.request.user.follower.all()
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=(IsAuthenticated, ),
+        url_path='shopping_cart',
+    )
+    def shopping_cart(self, request, pk):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        if request.method == 'POST':
+            data = {'user': user.id, 'recipe': recipe.id}
+            serializer = ShoppingCartSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            shopping_cart = ShoppingCart.objects.filter(user=user.id, recipe=recipe.id)
+            if shopping_cart.exists():
+                shopping_cart.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'detail': 'Рецепт не найден в корзине покупок'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated, )
+    )
+    def download_shopping_cart(self, request):
+        return ShoppingCartDownloader.download_shopping_list(request)

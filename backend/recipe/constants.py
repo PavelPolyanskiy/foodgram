@@ -1,4 +1,4 @@
-UNIT_LENGTH = 256
+NAME_LENGTH = 256
 """Длина поля моделей."""
 
 SLUG_LENGTH = 50

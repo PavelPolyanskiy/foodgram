@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
 
 }
 
-DEFAULT_AVATAR = 'users/default_avatar.png'
+DEFAULT_AVATAR = 'users/default.jpg'
 
 # SIMPLE_JWT = {
 #     # Устанавливаем срок жизни токена
