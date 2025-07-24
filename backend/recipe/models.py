@@ -1,7 +1,10 @@
+import string
+import random
+
 from django.db import models
 from django.contrib.auth import get_user_model
 
-from api.constants import NAME_LENGTH, SLUG_LENGTH
+from api.constants import NAME_LENGTH, SLUG_LENGTH, SHORT_LINK_LENGTH
 
 User = get_user_model()
 
@@ -155,3 +158,26 @@ class ShoppingCart(models.Model):
     class Meta:
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзина покупок'
+
+def create_random_string():
+    symbols = string.ascii_letters + string.digits
+    return ''.join(random.choice(symbols) for _ in range(SHORT_LINK_LENGTH))
+
+class RecipeShortLink(models.Model):
+    """Модель для коротких ссылок рецептов."""
+
+    recipe = models.OneToOneField(
+        Recipe,
+        on_delete=models.CASCADE,
+    )
+
+    short_link = models.CharField(
+        max_length=8,
+        verbose_name='Короткая ссылка',
+        default=create_random_string(),
+        unique=True
+    )
+
+    class Meta:
+        verbose_name = 'Модель коротких ссылок'
+        verbose_name_plural = verbose_name

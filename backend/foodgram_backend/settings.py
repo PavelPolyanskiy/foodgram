@@ -156,8 +156,7 @@ REST_FRAMEWORK = {
 
 DEFAULT_AVATAR = 'users/default.jpg'
 
-# SIMPLE_JWT = {
-#     # Устанавливаем срок жизни токена
-#     'ACCESS_TOKEN_LIFETIME': timedelta(days=30),   #  CHANGEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-#     'AUTH_HEADER_TYPES': ('Bearer',),
-# } 
+
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+}

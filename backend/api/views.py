@@ -25,11 +25,7 @@ User = get_user_model()
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSignUpSerializer
-    permission_classes = (AllowAny, )  # pomenyai /////////// dssssssssssssssssssssss
-    #lookup_field = 'username'
-    #http_method_names = ['get', 'post', 'patch', 'delete']
-    #filter_backends = [filters.SearchFilter]
-    #search_fields = ['username']
+    permission_classes = (AllowAny, )
     pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
@@ -37,7 +33,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserSerializer
         if self.action == 'set_password':
             return PasswordSerializer
- 
+
         return UserSignUpSerializer
 
     @action(
@@ -62,7 +58,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def avatar(self, request):
         user = request.user
         if request.method == 'PUT':
-            serializer = AvatarSerializer(instance=user, data=request.data, partial=True)
+            serializer = AvatarSerializer(
+                instance=user,
+                data=request.data,
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -73,29 +72,29 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-
     @action(detail=False,
             methods=['post'],
             permission_classes=(IsAuthenticated, ),
             url_path='set_password',
             serializer_class=PasswordSerializer
-    )
+            )
     def set_password(self, request):
         user = request.user
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        if user.check_password(serializer.validated_data['current_password']):
-            user.set_password(serializer.validated_data['new_password'])
+        if user.check_password(
+            serializer.validated_data.get('current_password')
+        ):
+            user.set_password(serializer.validated_data.get('new_password'))
             user.save()
             return Response(
-                'Пароль успешно изменен',
+                'Пароль успешно изменен.',
                 status=status.HTTP_204_NO_CONTENT
             )
 
-        return Response('Пароли не совпадают', status.HTTP_404_NOT_FOUND)
-
+        return Response('Текущий пароль неверный.', status.HTTP_404_NOT_FOUND)
 
     @action(
         detail=True,
@@ -109,7 +108,9 @@ class UserViewSet(viewsets.ModelViewSet):
         data = {'following': author.id}
 
         if request.method == 'POST':
-            serializer = FollowSerializer(data=data, context={'request': request})
+            serializer = FollowSerializer(
+                data=data, context={'request': request}
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -119,7 +120,10 @@ class UserViewSet(viewsets.ModelViewSet):
             if follow.exists():
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response({'detail': 'Подписка не найдена.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Подписка не найдена.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class SubscribtionsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -153,8 +157,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return recipe_filter(Recipe, self.request)
 
-
-
     def get_serializer_class(self):
         if self.action in ['create', 'partial_update']:
             return RecipeCreateUpdateSerializer
@@ -179,11 +181,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            favorite = Favorite.objects.filter(user=user.id,recipe=recipe.id)
+            favorite = Favorite.objects.filter(user=user.id, recipe=recipe.id)
             if favorite.exists():
                 favorite.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response({'detail': 'Рецепт не найден в избранном.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Рецепт не найден в избранном.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(
         detail=True,
@@ -203,12 +208,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            shopping_cart = ShoppingCart.objects.filter(user=user.id, recipe=recipe.id)
+            shopping_cart = ShoppingCart.objects.filter(
+                user=user.id, recipe=recipe.id
+            )
             if shopping_cart.exists():
                 shopping_cart.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response({'detail': 'Рецепт не найден в корзине покупок'}, status=status.HTTP_404_NOT_FOUND)
-        
+            return Response(
+                {'detail': 'Рецепт не найден в корзине покупок'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     @action(
         detail=False,
         methods=['get'],

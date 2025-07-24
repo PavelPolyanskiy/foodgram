@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from django.http import FileResponse
 
-from recipe.models import ShoppingCart, Recipe, Ingredient, IngredientRecipe
+from recipe.models import ShoppingCart, IngredientRecipe
 
 
 class Base64ImageField(serializers.ImageField):
@@ -20,10 +20,11 @@ class Base64ImageField(serializers.ImageField):
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
 
         return super().to_internal_value(data)
-    
+
 
 class ShoppingCartDownloader:
     """Класс для создания файла с ингредиентами и его скачивания."""
+
     @staticmethod
     def download_shopping_list(request):
         dir_path = Path(settings.MEDIA_ROOT) / 'shopping_cart'
