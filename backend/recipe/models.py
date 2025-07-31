@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 
 from api.constants import NAME_LENGTH, SLUG_LENGTH, SHORT_LINK_LENGTH
 
+
 User = get_user_model()
 
 
@@ -32,7 +33,7 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """Ингредиент."""
+    """Модель ингредиент."""
 
     name = models.CharField(
         max_length=NAME_LENGTH,
@@ -159,9 +160,11 @@ class ShoppingCart(models.Model):
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзина покупок'
 
+
 def create_random_string():
     symbols = string.ascii_letters + string.digits
     return ''.join(random.choice(symbols) for _ in range(SHORT_LINK_LENGTH))
+
 
 class RecipeShortLink(models.Model):
     """Модель для коротких ссылок рецептов."""
@@ -169,10 +172,11 @@ class RecipeShortLink(models.Model):
     recipe = models.OneToOneField(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='short_link'
     )
 
     short_link = models.CharField(
-        max_length=8,
+        max_length=SHORT_LINK_LENGTH,
         verbose_name='Короткая ссылка',
         default=create_random_string(),
         unique=True

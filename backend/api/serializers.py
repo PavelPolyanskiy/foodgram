@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from djoser.serializers import UserCreateSerializer as DjoserUserSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
@@ -9,70 +10,93 @@ from users.models import Follow
 from .utils import Base64ImageField
 from .constants import (MAX_EMAIL_LENGTH, MAX_FIELD_LENGTH, MIN_ING_AMOUNT,
                         MAX_ING_AMOUNT)
-from .validators import password_validator
+from .validators import password_validator, username_validator
 
 
 User = get_user_model()
 
 
-class UserSignUpSerializer(serializers.ModelSerializer):
-    """Сериализатор для логики эндпоинта /users/."""
-
-    email = serializers.EmailField(
-        max_length=MAX_EMAIL_LENGTH,
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='Эта электронная почта '
-                'уже используется.'
-            )
-        ]
-    )
-
-    username = serializers.RegexField(
-        regex=r'^[\w.@+-]+$',
-        max_length=MAX_FIELD_LENGTH,
-        required=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message='Это имя уже используется.'
-            )
-        ]
-    )
-
-    first_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
-    last_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
-    password = serializers.CharField(write_only=True)
+class UserCreateSerializer(DjoserUserSerializer):
 
     class Meta:
         model = User
         fields = (
-            'email', 'username', 'first_name',
-            'last_name', 'password'
+            'id', 'email', 'username', 'first_name', 'last_name', 'password'
         )
 
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
 
-    def validate_username(self, value):
-        if value == 'me':
-            raise ValidationError('Использовать имя me запрещено.')
-        return value
+# class YANGNIUserSerializer(serializers.ModelSerializer):
 
-    def validate_password(self, value):
-        password_validator(value)
+#     username = serializers.CharField(
+#         validators=(username_validator,),
+#     )
 
-        return value
+#     class Meta:
+#         model = User
+#         fields = (
+#             'email', 'id', 'username', 'first_name',
+#             'last_name', 'avatar'
+#         )
 
 
-class UserSerializer(UserSignUpSerializer):
-    """Сериализатор для логики эндпоинта /me/ ."""
+# class UserSignUpSerializer(serializers.ModelSerializer):
+#     """Сериализатор для логики эндпоинта /users/."""
+
+#     email = serializers.EmailField( 
+#         max_length=MAX_EMAIL_LENGTH,
+#         required=True,
+#         validators=[
+#             UniqueValidator(
+#                 queryset=User.objects.all(),
+#                 message='Эта электронная почта '
+#                 'уже используется.'
+#             )
+#         ]
+#     )
+
+#     username = serializers.RegexField(
+#         regex=r'^[\w.@+-]+$',
+#         max_length=MAX_FIELD_LENGTH,
+#         required=True,
+#         validators=[
+#             UniqueValidator(
+#                 queryset=User.objects.all(),
+#                 message='Это имя уже используется.'
+#             )
+#         ]
+#     )
+
+#     first_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
+#     last_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
+#     password = serializers.CharField(write_only=True)
+
+#     class Meta:
+#         model = User
+#         fields = (
+#             'email', 'username', 'first_name',
+#             'last_name', 'password'
+#         )
+
+#     def create(self, validated_data):
+#         password = validated_data.pop('password')
+#         user = User(**validated_data)
+#         user.set_password(password)
+#         user.save()
+#         return user
+
+#     def validate_username(self, value):
+#         if value == 'me':
+#             raise ValidationError('Использовать имя me запрещено.')
+#         return value
+
+#     def validate_password(self, value):
+#         password_validator(value)
+
+#         return value
+
+
+class UserSerializer(UserCreateSerializer):
+    """Сериализатор для списка пользователей."""
 
     is_subscribed = serializers.SerializerMethodField()
 
@@ -223,20 +247,29 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate_ingredients(self, value):
+        print(value)
         if not value:
             raise ValidationError('Добавьте минимум 1 ингредиент.')
+        
         ingredients = set()
         for item in value:
             ingredient = item.get('id')
             if ingredient in ingredients:
-                raise ValidationError(f'Ингредиет {ingredient} повторяется')
+                raise ValidationError(f'Ингредиет {ingredient} повторяется.')
             ingredients.add(ingredient)
 
         return value
 
     def validate_tags(self, value):
+        print(value)
         if not value:
             raise ValidationError('Добавьте минимум 1 тег.')
+        
+        tags = set()
+        for tag in value:
+            if tag in tags:
+                raise ValidationError(f'Тег {tag} повторяется.')
+            tags.add(tag)
 
         return value
 
@@ -352,7 +385,7 @@ class FollowSerializer(serializers.ModelSerializer):
     def validate_following(self, value):
         """Проверка, что пользователь не может подписаться на самого себя."""
         if self.context.get('request').user == value:
-            raise ValidationError('Нельзя подписаться на самого себя.')
+            raise ValidationError('Вы уже подписаны на этого пользователя.')
         return value
 
     def create(self, validated_data):

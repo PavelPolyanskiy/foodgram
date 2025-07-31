@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
-from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -130,7 +129,7 @@ STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # TODO
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # TODO
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -139,18 +138,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-#default profile picture &&&&& TODO
+DEFAULT_AVATAR = 'users/default.jpg'
+
 
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-
-
 
 }
 
@@ -159,4 +154,13 @@ DEFAULT_AVATAR = 'users/default.jpg'
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
+        'user_create': 'djoser.serializers.UserCreateSerializer',
+    },
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'user_list': ['rest_framework.permissions.AllowAny']
+    }
 }

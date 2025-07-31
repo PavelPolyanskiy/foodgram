@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from api.views import (UserViewSet, TagViewSet, IngredientViewSet,
-                       RecipeViewSet, SubscribtionsViewSet)
+                       RecipeViewSet, SubscribtionsViewSet, ShortLinkView)
 
 router_v1 = DefaultRouter()
 
@@ -31,11 +31,12 @@ router_v1.register(
 )
 
 urlpatterns = [
+    path('', include(router_v1.urls)),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.authtoken')),
     path(
         'users/subscriptions/',
         SubscribtionsViewSet.as_view({'get': 'list'})
     ),
-    path('', include(router_v1.urls)),
-    path('auth/', include('djoser.urls')),
-    path('auth/', include('djoser.urls.authtoken')),
+    path('recipes/<int:pk>/', ShortLinkView.as_view()),
 ]

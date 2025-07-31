@@ -1,37 +1,69 @@
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from rest_framework.authtoken.models import Token
 
 from .validators import username_validator, validate_username_me
+from api.constants import (MAX_EMAIL_LENGTH, USERNAME_LENGTH,
+                           FIRST_NAME_LENGTH, LAST_NAME_LENGTH)
 
 
 class User(AbstractUser):
     """Модель пользователя."""
 
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = (
+        'username',
+        'first_name',
+        'last_name',
+    )
+
+    email = models.EmailField(
+        verbose_name='Адрес электронной почты',
+        unique=True,
+        error_messages={
+            'unique': 'Данный эл. адрес уже используется',
+        },
+        max_length=MAX_EMAIL_LENGTH
+    )
+
     username = models.CharField(
-        max_length=150,
+        verbose_name='Имя пользователя',
         unique=True,
         validators=[username_validator, validate_username_me],
-        verbose_name='Имя пользователя'
+        error_messages={
+            'unique': 'Данное имя пользователя уже используется',
+        },
+        max_length=USERNAME_LENGTH,
+    )
+
+    first_name = models.CharField(
+        verbose_name='Имя',
+        max_length=FIRST_NAME_LENGTH
+    )
+
+    last_name = models.CharField(
+        verbose_name='Фамилия',
+        max_length=LAST_NAME_LENGTH
     )
 
     avatar = models.ImageField(
+        verbose_name='Аватар',
         upload_to='users/',
+        blank=True,
         null=True,
-        #default='users/default_avatar.png', # TODO 
-        verbose_name='Аватар пользователя'
     )
 
-    follows = models.ManyToManyField(
-        'self',
-        through='Follow',
-        related_name='followers',
-        symmetrical=False,
-        verbose_name='Подписки'
-    )
+    # follows = models.ManyToManyField(  # не работает должным образом, лучше отд. модель
+    #     'self',
+    #     through='Follow',
+    #     related_name='followers',
+    #     symmetrical=False,
+    #     verbose_name='Подписки'
+    # )
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('username', )
 
     def __str__(self):
         return self.username
