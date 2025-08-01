@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser import views as djoser_views
 from django.conf import settings
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
@@ -10,17 +11,17 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
 from .serializers import (UserSerializer, UserCreateSerializer,
-                          AvatarSerializer, PasswordSerializer,
+                          AvatarSerializer,
                           TagSerializer, IngredientSerializer,
                           RecipeCreateUpdateSerializer, FollowSerializer,
                           RecipeReadSerializer, FavoriteSerializer,
                           ShoppingCartSerializer, SubscriptionsSerializer)
-from recipe.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart
+from recipe.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeShortLink
 from users.models import Follow
 from .utils import ShoppingCartDownloader
 from .filters import recipe_filter
 from .permissions import AuthorOrReadOnly
-from .paginators import RecipePagination
+from .paginators import RecipePagination, RecipeLimitPagination
 
 User = get_user_model()
 
@@ -28,26 +29,12 @@ User = get_user_model()
 class UserViewSet(djoser_views.UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
-    #pagination_class = LimitOffsetPagination
+    pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
         if self.action in ['me', 'list']:
             return UserSerializer
         return UserCreateSerializer
-
-    #     return UserSignUpSerializer
-
-    # @action(
-    #     detail=False,
-    #     methods=['get'],
-    #     permission_classes=(IsAuthenticated, ),
-    #     serializer_class=UserSerializer
-    # )
-    # def me(self, request):
-    #     user = request.user
-    #     if request.method == 'GET':
-    #         serializer = self.get_serializer(user)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
         detail=False,
@@ -73,37 +60,14 @@ class UserViewSet(djoser_views.UserViewSet):
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # @action(detail=False,
-    #         methods=['post'],
-    #         permission_classes=(IsAuthenticated, ),
-    #         url_path='set_password',
-    #         serializer_class=PasswordSerializer
-    #         )
-    # def set_password(self, request):
-    #     user = request.user
-
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     user = request.user
-    #     if user.check_password(
-    #         serializer.validated_data.get('current_password')
-    #     ):
-    #         user.set_password(serializer.validated_data.get('new_password'))
-    #         user.save()
-    #         return Response(
-    #             'Пароль успешно изменен.',
-    #             status=status.HTTP_204_NO_CONTENT
-    #         )
-
-    #     return Response('Текущий пароль неверный.', status.HTTP_404_NOT_FOUND)
-
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated, ),
         url_path='subscribe',
     )
-    def subscribe(self, request, pk):
+    def subscribe(self, request, *args, **kwargs):
+        pk = kwargs.get('pk') or kwargs.get('id')
         user = request.user
         author = get_object_or_404(User, id=pk)
         data = {'following': author.id}
@@ -122,29 +86,39 @@ class UserViewSet(djoser_views.UserViewSet):
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
-                {'detail': 'Подписка не найдена.'},
+                {'message': 'Подписка не найдена.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
 
-class SubscribtionsViewSet(viewsets.ReadOnlyModelViewSet):
-    http_method_names = ('get',)
-    serializer_class = SubscriptionsSerializer
-    permission_classes = (IsAuthenticated, )
+class SubscriptionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = LimitOffsetPagination
+    
 
-    def get_queryset(self):
-        user = self.request.user
-        return User.objects.filter(following__user=user)
+    def get(self, request):
+        user = request.user
+        subscriptions = User.objects.filter(following__user=user)
+        serializer = SubscriptionsSerializer(
+            subscriptions, many=True, context={'request': request}
+        )
+        return Response(serializer.data)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filterset_fields = ('name', )
+    search_fields = ('name', )
+    pagination_class = None
+
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -164,13 +138,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return RecipeReadSerializer
 
-
-
-
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated, ),
+        pagination_class=RecipeLimitPagination,
         url_path='favorite',
     )
     def favorite(self, request, pk):
@@ -235,10 +207,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class ShortLinkView(APIView):
 
     def get(self, request, pk):
-        recipe = Recipe.objects.get(id=pk)
+        recipe = get_object_or_404(Recipe, id=pk)
         if recipe:
+            if not RecipeShortLink.objects.filter(recipe=recipe).exists():
+                RecipeShortLink.objects.create(recipe=recipe)
+
             scheme, host = request.scheme, request.get_host()
             link = recipe.short_link.short_link
             url = f'{scheme}://{host}/recipes/s/{link}'
-            return Response({'url': url}, status=status.HTTP_200_OK)
+            return Response({'short-link': url}, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_404_NOT_FOUND)

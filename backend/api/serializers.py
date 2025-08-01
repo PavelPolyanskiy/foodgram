@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer as DjoserUserSerializer
+from djoser.serializers import SetPasswordSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
@@ -10,8 +11,8 @@ from users.models import Follow
 from .utils import Base64ImageField
 from .constants import (MAX_EMAIL_LENGTH, MAX_FIELD_LENGTH, MIN_ING_AMOUNT,
                         MAX_ING_AMOUNT)
-from .validators import password_validator, username_validator
 
+import pprint
 
 User = get_user_model()
 
@@ -23,76 +24,6 @@ class UserCreateSerializer(DjoserUserSerializer):
         fields = (
             'id', 'email', 'username', 'first_name', 'last_name', 'password'
         )
-
-
-# class YANGNIUserSerializer(serializers.ModelSerializer):
-
-#     username = serializers.CharField(
-#         validators=(username_validator,),
-#     )
-
-#     class Meta:
-#         model = User
-#         fields = (
-#             'email', 'id', 'username', 'first_name',
-#             'last_name', 'avatar'
-#         )
-
-
-# class UserSignUpSerializer(serializers.ModelSerializer):
-#     """Сериализатор для логики эндпоинта /users/."""
-
-#     email = serializers.EmailField( 
-#         max_length=MAX_EMAIL_LENGTH,
-#         required=True,
-#         validators=[
-#             UniqueValidator(
-#                 queryset=User.objects.all(),
-#                 message='Эта электронная почта '
-#                 'уже используется.'
-#             )
-#         ]
-#     )
-
-#     username = serializers.RegexField(
-#         regex=r'^[\w.@+-]+$',
-#         max_length=MAX_FIELD_LENGTH,
-#         required=True,
-#         validators=[
-#             UniqueValidator(
-#                 queryset=User.objects.all(),
-#                 message='Это имя уже используется.'
-#             )
-#         ]
-#     )
-
-#     first_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
-#     last_name = serializers.CharField(max_length=MAX_FIELD_LENGTH)
-#     password = serializers.CharField(write_only=True)
-
-#     class Meta:
-#         model = User
-#         fields = (
-#             'email', 'username', 'first_name',
-#             'last_name', 'password'
-#         )
-
-#     def create(self, validated_data):
-#         password = validated_data.pop('password')
-#         user = User(**validated_data)
-#         user.set_password(password)
-#         user.save()
-#         return user
-
-#     def validate_username(self, value):
-#         if value == 'me':
-#             raise ValidationError('Использовать имя me запрещено.')
-#         return value
-
-#     def validate_password(self, value):
-#         password_validator(value)
-
-#         return value
 
 
 class UserSerializer(UserCreateSerializer):
@@ -128,20 +59,6 @@ class AvatarSerializer(serializers.ModelSerializer):
         instance.avatar = validated_data.get('avatar')
         instance.save()
         return instance
-
-
-class PasswordSerializer(serializers.Serializer):
-    new_password = serializers.CharField(
-        required=True, write_only=True
-    )
-    current_password = serializers.CharField(
-        required=True, write_only=True
-    )
-
-    def validate_password(self, value):
-        password_validator(value)
-        return value
-
 
 class TagSerializer(serializers.ModelSerializer):
 
@@ -247,10 +164,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate_ingredients(self, value):
-        print(value)
+
         if not value:
             raise ValidationError('Добавьте минимум 1 ингредиент.')
-        
+
         ingredients = set()
         for item in value:
             ingredient = item.get('id')
@@ -261,10 +178,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_tags(self, value):
-        print(value)
+
         if not value:
             raise ValidationError('Добавьте минимум 1 тег.')
-        
+
         tags = set()
         for tag in value:
             if tag in tags:
@@ -299,7 +216,11 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
 
         ingredients = validated_data.pop('ingredients', [])
+        if not ingredients:
+            raise ValidationError({'message': 'Добавьте минимум 1 ингредиент.'})
         tags = validated_data.pop('tags', [])
+        if not tags:
+            raise ValidationError({'message': 'Добавьте минимум 1 тег.'})
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
@@ -346,8 +267,8 @@ class SubscriptionsSerializer(UserSerializer):
         model = User
         fields = (
             'email', 'id', 'username', 'first_name',
-            'last_name', 'is_subscribed', 'avatar',
-            'recipes', 'recipe_count'
+            'last_name', 'is_subscribed',
+            'recipes', 'recipe_count', 'avatar'
         )
 
     def get_recipes(self, obj):
@@ -374,23 +295,37 @@ class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ('user', 'following')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Follow.objects.all(),
-                fields=('user', 'following'),
-                message='Нельзя подписаться на самого себя'
-            )
-        ]
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Follow.objects.all(),
+        #         fields=('user', 'following'),
+        #         message='Нельзя подписаться на самого себя'
+        #     )
+        # ]
 
     def validate_following(self, value):
-        """Проверка, что пользователь не может подписаться на самого себя."""
+        """Проверка, что подписка уникальна."""
         if self.context.get('request').user == value:
-            raise ValidationError('Вы уже подписаны на этого пользователя.')
+            raise ValidationError('Нельзя подписаться на самого себя.')
+
         return value
 
     def create(self, validated_data):
         user = self.context.get('request').user
-        return Follow.objects.create(user=user, **validated_data)
+        following = validated_data.get('following')
+        if Follow.objects.filter(user=user, following=following).exists():
+            raise ValidationError(
+                {'message': 'Вы уже подписаны на этого пользователя.'}
+            )
+
+        return Follow.objects.create(user=user, following=following)
+
+    def to_representation(self, instance):
+
+        return SubscriptionsSerializer(
+            instance.user,
+            context=self.context
+        ).data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -424,3 +359,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
                 message='Рецепт уже есть в корзине покупок.'
             )
         ]
+    
+    def to_representation(self, instance):
+        return RecipeFavoriteSerializer(instance.recipe).data

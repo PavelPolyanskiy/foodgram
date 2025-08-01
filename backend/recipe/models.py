@@ -3,6 +3,7 @@ import random
 
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from api.constants import NAME_LENGTH, SLUG_LENGTH, SHORT_LINK_LENGTH
 
@@ -86,9 +87,15 @@ class Recipe(models.Model):
         verbose_name='Время приготовления'
     )
 
+    pub_date = models.DateTimeField(
+        verbose_name='Дата публикации',
+        default=timezone.now()
+    )
+
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ('pub_date', )
 
     def __str__(self):
         return self.name
