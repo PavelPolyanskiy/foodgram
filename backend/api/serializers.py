@@ -17,26 +17,29 @@ import pprint
 User = get_user_model()
 
 
-class UserCreateSerializer(DjoserUserSerializer):
+# class UserCreateSerializer(DjoserUserSerializer):
 
-    class Meta:
-        model = User
-        fields = (
-            'id', 'email', 'username', 'first_name', 'last_name', 'password'
-        )
+#     class Meta:
+#         model = User
+#         fields = (
+#             'id', 'email', 'username', 'first_name', 'last_name', 'password'
+#         )
 
 
-class UserSerializer(UserCreateSerializer):
+class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для списка пользователей."""
-
+    avatar = Base64ImageField(required=False, allow_null=True)
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
-            'email', 'id', 'username', 'first_name',
+            'id', 'email', 'username', 'first_name',
             'last_name', 'is_subscribed', 'avatar',
         )
+        read_only_fields = [
+            'id', 'is_subscribed'
+        ]
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -44,7 +47,6 @@ class UserSerializer(UserCreateSerializer):
             return Follow.objects.filter(
                 user=request.user, following=obj
             ).exists()
-
         return False
 
 

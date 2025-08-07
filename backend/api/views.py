@@ -10,7 +10,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from .serializers import (UserSerializer, UserCreateSerializer,
+from .serializers import (UserSerializer,
                           AvatarSerializer,
                           TagSerializer, IngredientSerializer,
                           RecipeCreateUpdateSerializer, FollowSerializer,
@@ -21,20 +21,29 @@ from users.models import Follow
 from .utils import ShoppingCartDownloader
 from .filters import recipe_filter
 from .permissions import AuthorOrReadOnly
-from .paginators import RecipePagination, RecipeLimitPagination
+from .paginators import UserPagination, RecipeLimitPagination
 
 User = get_user_model()
 
 
 class UserViewSet(djoser_views.UserViewSet):
     queryset = User.objects.all()
-    serializer_class = UserCreateSerializer
-    pagination_class = LimitOffsetPagination
+    pagination_class = UserPagination
 
     def get_serializer_class(self):
-        if self.action in ['me', 'list']:
+        if self.action in ['list', 'retrieve']:
             return UserSerializer
-        return UserCreateSerializer
+        return super().get_serializer_class()
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated,),
+        url_path='me',
+    )
+    def me(self, request, *args, **kwargs):
+        print(f'User: {request.user} (authenticated: {request.user.is_authenticated})')
+        return super().me(request, *args, **kwargs)
 
     @action(
         detail=False,
@@ -73,6 +82,11 @@ class UserViewSet(djoser_views.UserViewSet):
         data = {'following': author.id}
 
         if request.method == 'POST':
+            if user == author:
+                return Response(
+                    {'erroes': 'Нельзя подписаться на самого себя.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             serializer = FollowSerializer(
                 data=data, context={'request': request}
             )
@@ -192,7 +206,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Рецепт не найден в корзине покупок'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST
             )
 
     @action(
