@@ -62,6 +62,7 @@ class AvatarSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -246,40 +247,48 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return RecipeReadSerializer(instance, context=self.context).data
 
 
-class RecipeFavoriteSerializer(serializers.ModelSerializer):
+class RecipeShortSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели Recipe для возврата краткой информации о рецетпте.
-
-    Используется в FavoriteSerializer.
 
     """
 
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = fields
 
 
 class SubscriptionsSerializer(UserSerializer):
     """Сериализатор для эндпоинта /users/subscriptions/ ."""
 
     recipes = serializers.SerializerMethodField()
-    recipe_count = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             'email', 'id', 'username', 'first_name',
             'last_name', 'is_subscribed',
-            'recipes', 'recipe_count', 'avatar'
+            'recipes', 'recipes_count', 'avatar'
         )
 
     def get_recipes(self, obj):
+        request = self.context.get('request')
         user_recipes = obj.recipes.all()
-        return RecipeFavoriteSerializer(
+        limit = request.GET.get('recipes_limit')
+        try:
+            if limit and int(limit) > 0:
+                user_recipes = user_recipes[:int(limit)]
+        
+        except (IndexError, TypeError):
+            pass
+
+        return RecipeShortSerializer(
             user_recipes, many=True, context=self.context
         ).data
 
-    def get_recipe_count(self, obj):
+    def get_recipes_count(self, obj):
         return obj.recipes.count()
 
 
@@ -345,7 +354,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        return RecipeFavoriteSerializer(instance.recipe).data
+        return RecipeShortSerializer(instance.recipe).data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
@@ -363,4 +372,4 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         ]
     
     def to_representation(self, instance):
-        return RecipeFavoriteSerializer(instance.recipe).data
+        return RecipeShortSerializer(instance.recipe).data

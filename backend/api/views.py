@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser import views as djoser_views
 from django.conf import settings
@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
 
 from .serializers import (UserSerializer,
                           AvatarSerializer,
@@ -105,18 +106,17 @@ class UserViewSet(djoser_views.UserViewSet):
             )
 
 
-class SubscriptionsAPIView(APIView):
+class SubscriptionsAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
-    
+    pagination_class = UserPagination
 
     def get(self, request):
-        user = request.user
-        subscriptions = User.objects.filter(following__user=user)
+        queryset = User.objects.filter(following__user=request.user)
+        pages = self.paginate_queryset(queryset)
         serializer = SubscriptionsSerializer(
-            subscriptions, many=True, context={'request': request}
+            pages, many=True, context={'request': request}
         )
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -132,7 +132,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ('name', )
     search_fields = ('name', )
     pagination_class = None
-
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -205,7 +204,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 shopping_cart.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
-                {'detail': 'Рецепт не найден в корзине покупок'},
+                {'detail': 'Рецепт не найден в корзине покупок.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -227,7 +226,12 @@ class ShortLinkView(APIView):
                 RecipeShortLink.objects.create(recipe=recipe)
 
             scheme, host = request.scheme, request.get_host()
-            link = recipe.short_link.short_link
-            url = f'{scheme}://{host}/recipes/s/{link}'
+            code = recipe.short_link.short_link
+            url = f'{scheme}://{host}/s/{code}'
             return Response({'short-link': url}, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+def short_link_view_redirect(request, short_code):
+    short_link = get_object_or_404(RecipeShortLink, short_link=short_code)
+    return redirect(f'/api/recipes/{short_link.recipe.id}/')
