@@ -1,29 +1,17 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import UserCreateSerializer as DjoserUserSerializer
-from djoser.serializers import SetPasswordSerializer
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
+from rest_framework.validators import UniqueTogetherValidator
 
 from recipe.models import (Recipe, Tag, IngredientRecipe,
                            Ingredient, Favorite, ShoppingCart)
 from users.models import Follow
 from .utils import Base64ImageField
-from .constants import (MAX_EMAIL_LENGTH, MAX_FIELD_LENGTH, MIN_ING_AMOUNT,
-                        MAX_ING_AMOUNT)
+from .constants import MIN_ING_AMOUNT, MAX_ING_AMOUNT
 
-import pprint
 
 User = get_user_model()
-
-
-# class UserCreateSerializer(DjoserUserSerializer):
-
-#     class Meta:
-#         model = User
-#         fields = (
-#             'id', 'email', 'username', 'first_name', 'last_name', 'password'
-#         )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -220,10 +208,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         ingredients = validated_data.pop('ingredients', [])
         if not ingredients:
-            raise ValidationError({'message': 'Добавьте минимум 1 ингредиент.'})
+            raise ValidationError({'message': 'Минимум 1 ингредиент.'})
         tags = validated_data.pop('tags', [])
         if not tags:
-            raise ValidationError({'message': 'Добавьте минимум 1 тег.'})
+            raise ValidationError({'message': 'Минимум 1 тег.'})
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
@@ -280,7 +268,7 @@ class SubscriptionsSerializer(UserSerializer):
         try:
             if limit and int(limit) > 0:
                 user_recipes = user_recipes[:int(limit)]
-        
+
         except (IndexError, TypeError):
             pass
 
@@ -306,13 +294,6 @@ class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ('user', 'following')
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Follow.objects.all(),
-        #         fields=('user', 'following'),
-        #         message='Нельзя подписаться на самого себя'
-        #     )
-        # ]
 
     def validate_following(self, value):
         """Проверка, что подписка уникальна."""
@@ -370,6 +351,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
                 message='Рецепт уже есть в корзине покупок.'
             )
         ]
-    
+
     def to_representation(self, instance):
         return RecipeShortSerializer(instance.recipe).data

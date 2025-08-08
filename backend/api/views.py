@@ -2,12 +2,11 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser import views as djoser_views
-from django.conf import settings
 from rest_framework import status, viewsets, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 
@@ -17,7 +16,8 @@ from .serializers import (UserSerializer,
                           RecipeCreateUpdateSerializer, FollowSerializer,
                           RecipeReadSerializer, FavoriteSerializer,
                           ShoppingCartSerializer, SubscriptionsSerializer)
-from recipe.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeShortLink
+from recipe.models import (Tag, Ingredient, Recipe, Favorite, ShoppingCart,
+                           RecipeShortLink)
 from users.models import Follow
 from .utils import ShoppingCartDownloader
 from .filters import recipe_filter
@@ -43,7 +43,6 @@ class UserViewSet(djoser_views.UserViewSet):
         url_path='me',
     )
     def me(self, request, *args, **kwargs):
-        print(f'User: {request.user} (authenticated: {request.user.is_authenticated})')
         return super().me(request, *args, **kwargs)
 
     @action(

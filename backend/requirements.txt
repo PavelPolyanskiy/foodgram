@@ -37,3 +37,4 @@ typing_extensions==4.14.0
 uritemplate==4.2.0
 urllib3==2.5.0
 webcolors==1.11.1
+python-dotenv==1.1.0

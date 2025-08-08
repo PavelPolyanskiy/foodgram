@@ -9,6 +9,7 @@ username_validator = RegexValidator(
     code='invalid_username'
 )
 
+
 def validate_username_me(value):
     if value == 'me':
         raise ValidationError('Использовать имя "me" запрещено')

@@ -7,19 +7,11 @@ from api.views import (UserViewSet, TagViewSet, IngredientViewSet,
 
 router_v1 = DefaultRouter()
 
-# router_v1.register(
-#     prefix='subscriptions/',
-#     viewset=SubscribtionsViewSet,
-#     basename='subscriptions'
-# )
-
-
 router_v1.register(
     prefix='users',
     viewset=UserViewSet,
     basename='user'
 )
-
 
 router_v1.register(
     prefix='tags',
@@ -54,5 +46,5 @@ urlpatterns = [
     ),
     path('auth/', include('djoser.urls.authtoken')),
     path('', include(router_v1.urls)),
-    
+
 ]

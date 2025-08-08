@@ -14,6 +14,7 @@ class User(AbstractUser):
         'username',
         'first_name',
         'last_name',
+        'password'
     )
 
     email = models.EmailField(
@@ -52,14 +53,6 @@ class User(AbstractUser):
         null=True,
     )
 
-    # follows = models.ManyToManyField(  # не работает должным образом, лучше отд. модель
-    #     'self',
-    #     through='Follow',
-    #     related_name='followers',
-    #     symmetrical=False,
-    #     verbose_name='Подписки'
-    # )
-
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
@@ -73,13 +66,17 @@ class Follow(models.Model):
     """Модель подписок."""
 
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='follower'
+        User, on_delete=models.CASCADE, related_name='follower',
+        verbose_name='Кто'
     )
     following = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='following'
+        User, on_delete=models.CASCADE, related_name='following',
+        verbose_name='На кого'
     )
 
     class Meta:
+        verbose_name = 'Подписчик'
+        verbose_name_plural = 'Подписчики'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'following'],
@@ -89,4 +86,3 @@ class Follow(models.Model):
 
     def __str__(self):
         return f'{self.user} подписан на {self.following}'
-    
