@@ -1,9 +1,8 @@
 import base64
-from pathlib import Path
+from io import BytesIO
 
 from rest_framework import serializers
 from django.core.files.base import ContentFile
-from django.conf import settings
 from django.http import FileResponse
 
 from recipe.models import ShoppingCart, IngredientRecipe
@@ -27,27 +26,40 @@ class ShoppingCartDownloader:
 
     @staticmethod
     def download_shopping_list(request):
-        dir_path = Path(settings.MEDIA_ROOT) / 'shopping_cart'
-        dir_path.mkdir(parents=True, exist_ok=True)
-        file_path = dir_path / f'{request.user}_shopping_list.txt'
+
         shopping_cart = ShoppingCart.objects.filter(user=request.user)
         ingredients_dict = {}
-        for item in shopping_cart:
-            items_queryset = IngredientRecipe.objects.filter(
-                recipe=item.recipe
+        for cart_item in shopping_cart:
+            recipe_ingredients = IngredientRecipe.objects.filter(
+                recipe=cart_item.recipe
             )
-            for el in items_queryset:
-                key = (el.ingredient.name, el.ingredient.measurement_unit)
-                if key in ingredients_dict:
-                    ingredients_dict[key] += el.amount
-                else:
-                    ingredients_dict[key] = el.amount
 
-        with open(file_path, 'w', encoding='utf-8') as file:
-            for key, value in ingredients_dict.items():
-                file.write(f'{key[0]} - {value} {key[1]} \n')
-        response = FileResponse(
-            open(file_path, 'rb'), as_attachment=True,
-            filename=f'{request.user}_shopping_list.txt'
+            for recipe_ingredient in recipe_ingredients:
+                ingredient = recipe_ingredient.ingredient
+                key = (ingredient.name, ingredient.measurement_unit)
+                amount = recipe_ingredient.amount
+
+                if key in ingredients_dict:
+                    ingredients_dict[key] += amount
+                else:
+                    ingredients_dict[key] = amount
+
+        head = [
+            f'Список покупок {request.user.username}\n\n',
+            f'Количество рецептов в списке: {len(shopping_cart)}\n\n',
+            'Список ингредиентов к покупке:\n\n',
+        ]
+
+        shop_list = []
+        for key, value in ingredients_dict.items():
+            shop_list.append(f'{key[0]} - {value} {key[1]} \n')
+
+        response = '\n'.join(head + shop_list)
+        byte_response = BytesIO(response.encode('utf-8'))
+
+        return FileResponse(
+            byte_response,
+            as_attachment=True,
+            filename='Shopping_list.txt',
+            content_type='text/plain'
         )
-        return response

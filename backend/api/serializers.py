@@ -1,15 +1,13 @@
 from django.contrib.auth import get_user_model
-
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
-from recipe.models import (Recipe, Tag, IngredientRecipe,
-                           Ingredient, Favorite, ShoppingCart)
 from users.models import Follow
+from .constants import MAX_ING_AMOUNT, MIN_ING_AMOUNT
 from .utils import Base64ImageField
-from .constants import MIN_ING_AMOUNT, MAX_ING_AMOUNT
-
+from recipe.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                           ShoppingCart, Tag)
 
 User = get_user_model()
 
@@ -81,7 +79,7 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
-class IngredientInRecipeSerializer1(serializers.ModelSerializer):
+class IngredientInRecipeSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -100,7 +98,7 @@ class IngredientInRecipeSerializer1(serializers.ModelSerializer):
 class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer()
-    ingredients = IngredientInRecipeSerializer1(
+    ingredients = IngredientInRecipeSerializer(
         many=True, source='recipeingredients'
     )
     is_favorited = serializers.SerializerMethodField()

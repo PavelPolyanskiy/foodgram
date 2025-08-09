@@ -146,6 +146,10 @@ class Favorite(models.Model):
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
+        unique_together = ('user', 'recipe')
+
+    def __str__(self):
+        return f'{self.recipe} в избранном у {self.user}'
 
 
 class ShoppingCart(models.Model):
@@ -166,6 +170,10 @@ class ShoppingCart(models.Model):
     class Meta:
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзина покупок'
+        unique_together = ('user', 'recipe')
+
+    def __str__(self):
+        return f'{self.recipe} в списке покупок у {self.user}'
 
 
 def create_random_string():
