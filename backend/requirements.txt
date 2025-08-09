@@ -10,6 +10,7 @@ Django==3.2.16
 django-templated-mail==1.1.1
 djangorestframework==3.12.4
 djangorestframework-simplejwt==4.7.2
+django-filter==23.1
 djoser==2.1.0
 flake8==6.1.0
 flake8-django==1.2
@@ -38,3 +39,4 @@ uritemplate==4.2.0
 urllib3==2.5.0
 webcolors==1.11.1
 python-dotenv==1.1.0
+psycopg2-binary==2.9.3
