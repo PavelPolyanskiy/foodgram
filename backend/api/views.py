@@ -233,4 +233,4 @@ class ShortLinkView(APIView):
 
 def short_link_view_redirect(request, short_code):
     short_link = get_object_or_404(RecipeShortLink, short_link=short_code)
-    return redirect(f'/api/recipes/{short_link.recipe.id}/')
+    return redirect(f'/recipes/{short_link.recipe.id}/')
