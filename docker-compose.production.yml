@@ -25,14 +25,12 @@
       command: cp -r /app/build/. /frontend_static/
       volumes:
       - static:/frontend_static
-        # - ./frontend/build:/usr/share/nginx/html/
     gateway:
       env_file: .env
       image: pashapaskal/foodgram_gateway
       ports:
         - 8000:80
       volumes:
-        # - ./frontend/build:/usr/share/nginx/html/
         - static:/static
         - media:/media
       depends_on:

@@ -89,7 +89,7 @@ class Recipe(models.Model):
 
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
-        default=timezone.now()
+        default=timezone.now
     )
 
     class Meta:
@@ -193,7 +193,7 @@ class RecipeShortLink(models.Model):
     short_link = models.CharField(
         max_length=SHORT_LINK_LENGTH,
         verbose_name='Короткая ссылка',
-        default=create_random_string(),
+        default=create_random_string,
         unique=True
     )
 

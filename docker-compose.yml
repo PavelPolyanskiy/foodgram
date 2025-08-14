@@ -31,7 +31,6 @@
       ports:
         - 8000:80
       volumes:
-        # - ./frontend/build:/usr/share/nginx/html/
         - static:/static
         - media:/media
       depends_on:
