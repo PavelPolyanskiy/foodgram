@@ -1,11 +1,11 @@
 import base64
 from io import BytesIO
 
-from rest_framework import serializers
 from django.core.files.base import ContentFile
 from django.http import FileResponse
+from rest_framework import serializers
 
-from recipe.models import ShoppingCart, IngredientRecipe
+from recipe.models import IngredientRecipe, ShoppingCart
 
 
 class Base64ImageField(serializers.ImageField):

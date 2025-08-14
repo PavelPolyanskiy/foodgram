@@ -2,27 +2,26 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser import views as djoser_views
-from rest_framework import status, viewsets, filters
-from rest_framework.response import Response
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView
 
-from .serializers import (UserSerializer,
-                          AvatarSerializer,
-                          TagSerializer, IngredientSerializer,
-                          RecipeCreateUpdateSerializer, FollowSerializer,
-                          RecipeReadSerializer, FavoriteSerializer,
-                          ShoppingCartSerializer, SubscriptionsSerializer)
-from recipe.models import (Tag, Ingredient, Recipe, Favorite, ShoppingCart,
-                           RecipeShortLink)
+from recipe.models import (Favorite, Ingredient, Recipe, RecipeShortLink,
+                           ShoppingCart, Tag)
 from users.models import Follow
-from .utils import ShoppingCartDownloader
 from .filters import recipe_filter
+from .paginators import RecipeLimitPagination, UserPagination
 from .permissions import AuthorOrReadOnly
-from .paginators import UserPagination, RecipeLimitPagination
+from .serializers import (AvatarSerializer, FavoriteSerializer,
+                          FollowSerializer, IngredientSerializer,
+                          RecipeCreateUpdateSerializer, RecipeReadSerializer,
+                          ShoppingCartSerializer, SubscriptionsSerializer,
+                          TagSerializer, UserSerializer)
+from .utils import ShoppingCartDownloader
 
 User = get_user_model()
 

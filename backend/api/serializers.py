@@ -3,11 +3,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
+from recipe.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                           ShoppingCart, Tag)
 from users.models import Follow
 from .constants import MAX_ING_AMOUNT, MIN_ING_AMOUNT
 from .utils import Base64ImageField
-from recipe.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                           ShoppingCart, Tag)
 
 User = get_user_model()
 

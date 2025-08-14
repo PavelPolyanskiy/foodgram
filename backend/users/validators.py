@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
-
 username_validator = RegexValidator(
     regex=r'^[\w.@+-]+$',
     message=('Имя пользователя должно содержать только'

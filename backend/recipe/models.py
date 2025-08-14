@@ -1,12 +1,11 @@
-import string
 import random
+import string
 
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.utils import timezone
 
-from api.constants import NAME_LENGTH, SLUG_LENGTH, SHORT_LINK_LENGTH
-
+from api.constants import NAME_LENGTH, SHORT_LINK_LENGTH, SLUG_LENGTH
 
 User = get_user_model()
 
