@@ -10,6 +10,12 @@
 
 У проекта реализованы CI/CD  с помощью GitHub Actions.
 
+## Пример работы проекта
+
+URL: https://paskalfoodgram.ddns.net/
+
+Документация: https://paskalfoodgram.ddns.net/api/docs/
+
 ## Стек технологий
 
 Веб-сервер: [![Nginx](https://img.shields.io/badge/-NGINX-464646?style=flat-square&logo=NGINX)](https://nginx.org/ru/)
