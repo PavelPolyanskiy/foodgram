@@ -14,7 +14,6 @@ djangorestframework-simplejwt==4.7.2
 djoser==2.1.0
 flake8==6.1.0
 flake8-django==1.2
-flake8-isort==6.0.0
 flake8-quotes==3.4.0
 idna==3.10
 isort==5.13.2
