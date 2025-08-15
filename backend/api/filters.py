@@ -1,3 +1,6 @@
+from django.db.models import Q
+
+
 def recipe_filter(model, request):
     flag = request.user.is_authenticated
     queryset = model.objects.all()
@@ -6,7 +9,8 @@ def recipe_filter(model, request):
         'is_in_shopping_cart'
     )
     author = request.query_params.get('author')
-    tags = request.query_params.get('tags')
+    tags = request.query_params.getlist('tags')
+
     if is_favorited == '1' and flag:
         queryset = queryset.filter(favorites__user=request.user)
 
@@ -17,8 +21,9 @@ def recipe_filter(model, request):
         queryset = queryset.filter(author=author)
 
     if tags:
-        tags_split = tags.split(',')
-        for tag in tags_split:
-            queryset = queryset.filter(tags__slug=tag)
+        query = Q()
+        for tag in tags:
+            query |= Q(tags__slug=tag)
+        queryset = queryset.filter(query).distinct()
 
     return queryset

@@ -103,7 +103,7 @@ class UserViewSet(djoser_views.UserViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Подписка не найдена.'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST  # лучше 404
             )
 
 
@@ -177,7 +177,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Рецепт не найден в избранном.'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST  # лучше 404
             )
 
     @action(
@@ -206,7 +206,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Рецепт не найден в корзине покупок.'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST  # лучше 404
             )
 
     @action(
