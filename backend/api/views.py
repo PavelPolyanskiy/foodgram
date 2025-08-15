@@ -5,7 +5,6 @@ from djoser import views as djoser_views
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +13,7 @@ from recipe.models import (Favorite, Ingredient, Recipe, RecipeShortLink,
                            ShoppingCart, Tag)
 from users.models import Follow
 from .filters import recipe_filter
-from .paginators import RecipeLimitPagination, UserPagination
+from .paginators import RecipeLimitPagination, CustomPagination
 from .permissions import AuthorOrReadOnly
 from .serializers import (AvatarSerializer, FavoriteSerializer,
                           FollowSerializer, IngredientSerializer,
@@ -27,11 +26,15 @@ User = get_user_model()
 
 
 class UserViewSet(djoser_views.UserViewSet):
-    queryset = User.objects.all()
-    pagination_class = UserPagination
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return User.objects.all()
+        return super().get_queryset()
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action == 'list' or self.action == 'retrieve':
             return UserSerializer
         return super().get_serializer_class()
 
@@ -83,7 +86,7 @@ class UserViewSet(djoser_views.UserViewSet):
         if request.method == 'POST':
             if user == author:
                 return Response(
-                    {'erroes': 'Нельзя подписаться на самого себя.'},
+                    {'detail': 'Нельзя подписаться на самого себя.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             serializer = FollowSerializer(
@@ -99,14 +102,14 @@ class UserViewSet(djoser_views.UserViewSet):
                 follow.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
-                {'message': 'Подписка не найдена.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Подписка не найдена.'},
+                status=status.HTTP_404_NOT_FOUND
             )
 
 
 class SubscriptionsAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    pagination_class = UserPagination
+    pagination_class = CustomPagination
 
     def get(self, request):
         queryset = User.objects.filter(following__user=request.user)
@@ -136,7 +139,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeReadSerializer
     queryset = Recipe.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
-    pagination_class = LimitOffsetPagination
+    pagination_class = CustomPagination
     permission_classes = (AuthorOrReadOnly, )
 
     def get_queryset(self):
@@ -174,7 +177,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Рецепт не найден в избранном.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_404_NOT_FOUND
             )
 
     @action(
@@ -203,7 +206,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(
                 {'detail': 'Рецепт не найден в корзине покупок.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_404_NOT_FOUND
             )
 
     @action(

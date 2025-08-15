@@ -20,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username', 'first_name',
+            'email', 'id', 'username', 'first_name',
             'last_name', 'is_subscribed', 'avatar',
         )
         read_only_fields = [
@@ -206,10 +206,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         ingredients = validated_data.pop('ingredients', [])
         if not ingredients:
-            raise ValidationError({'message': 'Минимум 1 ингредиент.'})
+            raise ValidationError({'detail': 'Минимум 1 ингредиент.'})
         tags = validated_data.pop('tags', [])
         if not tags:
-            raise ValidationError({'message': 'Минимум 1 тег.'})
+            raise ValidationError({'detail': 'Минимум 1 тег.'})
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
@@ -305,7 +305,7 @@ class FollowSerializer(serializers.ModelSerializer):
         following = validated_data.get('following')
         if Follow.objects.filter(user=user, following=following).exists():
             raise ValidationError(
-                {'message': 'Вы уже подписаны на этого пользователя.'}
+                {'detail': 'Вы уже подписаны на этого пользователя.'}
             )
 
         return Follow.objects.create(user=user, following=following)
