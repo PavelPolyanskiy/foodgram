@@ -6,7 +6,6 @@ from rest_framework.validators import UniqueTogetherValidator
 from recipe.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                            ShoppingCart, Tag)
 from users.models import Follow
-from .constants import MAX_ING_AMOUNT, MIN_ING_AMOUNT
 from .utils import Base64ImageField
 
 User = get_user_model()
@@ -23,17 +22,16 @@ class UserSerializer(serializers.ModelSerializer):
             'email', 'id', 'username', 'first_name',
             'last_name', 'is_subscribed', 'avatar',
         )
-        read_only_fields = [
-            'id', 'is_subscribed'
-        ]
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if request.user.is_authenticated:
-            return Follow.objects.filter(
+        return (
+            request
+            and request.user.is_authenticated
+            and Follow.objects.filter(
                 user=request.user, following=obj
             ).exists()
-        return False
+        )
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -42,11 +40,6 @@ class AvatarSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('avatar', )
-
-    def update(self, instance, validated_data):
-        instance.avatar = validated_data.get('avatar')
-        instance.save()
-        return instance
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -57,22 +50,14 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class IngredientSerializer(serializers.ModelSerializer):
-    amount = serializers.IntegerField(
-        required=False,
-        min_value=1,
-        max_value=1000
-    )
 
     class Meta:
         model = Ingredient
-        fields = ('id', 'name', 'measurement_unit', 'amount')
+        fields = ('id', 'name', 'measurement_unit')
 
 
 class IngredientRecipeSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    amount = serializers.IntegerField(
-        min_value=MIN_ING_AMOUNT, max_value=MAX_ING_AMOUNT
-    )
 
     class Meta:
         model = IngredientRecipe
@@ -85,10 +70,7 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
     measurement_unit = serializers.ReadOnlyField(
         source='ingredient.measurement_unit'
     )
-    amount = serializers.SerializerMethodField()
-
-    def get_amount(self, obj):
-        return obj.amount
+    amount = serializers.ReadOnlyField()
 
     class Meta:
         model = IngredientRecipe
@@ -104,27 +86,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if request.user.is_authenticated:
-
-            return Favorite.objects.filter(
-                recipe=obj, user=request.user
-            ).exists()
-
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-
-        if request.user.is_authenticated:
-
-            return ShoppingCart.objects.filter(
-                user=request.user, recipe=obj
-            ).exists()
-
-        return False
-
     class Meta:
         model = Recipe
         fields = (
@@ -132,6 +93,28 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'ingredients', 'is_favorited',
             'is_in_shopping_cart', 'name',
             'image', 'text', 'cooking_time'
+        )
+
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+
+        return (
+            request
+            and request.user.is_authenticated
+            and Favorite.objects.filter(
+                user=request.user, recipe=obj
+            ).exists()
+        )
+
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+
+        return (
+            request
+            and request.user.is_authenticated
+            and ShoppingCart.objects.filter(
+                user=request.user, recipe=obj
+            ).exists()
         )
 
 
@@ -152,38 +135,36 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             'name', 'image', 'text', 'cooking_time'
         )
 
-    def validate_ingredients(self, value):
+    def validate(self, data):
+        ings_data = data.get('ingredients')
 
-        if not value:
+        if not ings_data:
             raise ValidationError('Добавьте минимум 1 ингредиент.')
 
         ingredients = set()
-        for item in value:
+        for item in ings_data:
             ingredient = item.get('id')
+            amount = item.get('amount')
+
+            if not amount or amount < 1:
+                raise ValidationError('Количество должно быть не меньше 1')
+
             if ingredient in ingredients:
                 raise ValidationError(f'Ингредиет {ingredient} повторяется.')
+
             ingredients.add(ingredient)
 
-        return value
-
-    def validate_tags(self, value):
-
-        if not value:
+        tags_data = data.get('tags')
+        if not tags_data:
             raise ValidationError('Добавьте минимум 1 тег.')
 
         tags = set()
-        for tag in value:
+        for tag in tags_data:
             if tag in tags:
                 raise ValidationError(f'Тег {tag} повторяется.')
             tags.add(tag)
 
-        return value
-
-    def validate_cooking_time(self, value):
-        if value < 1:
-            raise ValidationError('Время готовки не может быть меньше 1 мин.')
-
-        return value
+        return data
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients', [])
@@ -205,11 +186,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
 
         ingredients = validated_data.pop('ingredients', [])
-        if not ingredients:
-            raise ValidationError({'detail': 'Минимум 1 ингредиент.'})
         tags = validated_data.pop('tags', [])
-        if not tags:
-            raise ValidationError({'detail': 'Минимум 1 тег.'})
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 

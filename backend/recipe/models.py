@@ -2,6 +2,7 @@ import random
 import string
 
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -82,8 +83,9 @@ class Recipe(models.Model):
         Tag,
         verbose_name='Теги'
     )
-    cooking_time = models.PositiveIntegerField(
-        verbose_name='Время приготовления'
+    cooking_time = models.PositiveSmallIntegerField(
+        verbose_name='Время приготовления',
+        validators=(MinValueValidator(1), ),
     )
 
     pub_date = models.DateTimeField(
@@ -114,7 +116,10 @@ class IngredientRecipe(models.Model):
         related_name='recipeingredients'
     )
 
-    amount = models.PositiveIntegerField(verbose_name='Количество')
+    amount = models.PositiveSmallIntegerField(
+        verbose_name='Количество',
+        validators=(MinValueValidator(1), ),
+    )
 
     class Meta:
         unique_together = ('ingredient', 'recipe')
