@@ -4,6 +4,8 @@ from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 
+from api.constants import PAGINATION_PAGE_SIZE
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,9 +63,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
-DATABASE = os.getenv('DATABASE', False)
+CURRENT_DATABASE = os.getenv('CURRENT_DATABASE', False).lower() in ['postgres']
 
-if DATABASE:
+if not CURRENT_DATABASE:
 
     DATABASES = {
         'default': {
@@ -84,6 +86,8 @@ else:
             'PORT': os.getenv('DB_PORT', 5432)
         }
     }
+
+    ############################## обноыи .env на сервере с верным 
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -132,7 +136,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 6,
+    'PAGE_SIZE': PAGINATION_PAGE_SIZE,
 }
 
 

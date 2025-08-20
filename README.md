@@ -16,39 +16,9 @@ URL: https://paskalfoodgram.ddns.net/
 
 Документация: https://paskalfoodgram.ddns.net/api/docs/
 
-## Стек технологий
+## Запуск проекта, используя Docker 
 
-Веб-сервер: [![Nginx](https://img.shields.io/badge/-NGINX-464646?style=flat-square&logo=NGINX)](https://nginx.org/ru/)
-
-Frontend фреймворк: [![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
-
-Backend фреймворк:   [![Django](https://img.shields.io/badge/-Django-464646?style=flat-square&logo=Django)](https://www.djangoproject.com/)
-
-API фреймворк: [![Django REST Framework](https://img.shields.io/badge/-Django%20REST%20Framework-464646?style=flat-square&logo=Django%20REST%20Framework)](https://www.django-rest-framework.org/)
-
-База данных: [![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-464646?style=flat-square&logo=PostgreSQL)](https://www.postgresql.org/)
-
-## Архитектура приложения 
-
-Веб-сервер nginx перенаправляет запросы клиентов к контейнерам frontend и backend, либо к хранилищам (volume) статики и файлов.
-
-Контейнер nginx взаимодействует с контейнером backend через gunicorn.
-
-Контейнер frontend взаимодействует с контейнером backend посредством API-запросов.
-
-## Документация к проекту
-
-Документация для API после установки доступна по адресу [http://localhost/api/docs/](http://localhost/api/docs/)
-
-
-## Admin зона
-
-Admin зона django после установки доступна по адресу [http://localhost/admin/](http://localhost/admin/)
-
-
-## Запуск проекта через Docker
-
-**Для такого запуска на компьютере должно быть приложение Docker!**
+**Необходимо приложение Docker!**
 
 1. Клонировать репозиторий и перейти в него в командной строке:
 
@@ -59,13 +29,16 @@ Admin зона django после установки доступна по адр
 2. Шаблон наполнения .env можно посмотреть в файле .env.example. Файл с переменными окружения должен лежать в корневой директории.
    
    **Переменную DB_HOST не изменять!**
+   
+   **Для использования в проекте БД Postgres, необходимо указать в переменной CURRENT_DATABASE=postgres (не чувствительно к регистру).**
 
-3. Находясь в папке infra/ поднять контейнеры
+3. Перейти в папку foodgram/, поднять контейнеры
 
     ```bash
     docker compose up -d --build
     ```
-4. По адресу [http://localhost](http://localhost) будет доступно веб-приложение
+
+4. По адресу [http://127.0.0.1:8000/](http://127.0.0.1:8000/) будет доступно веб-приложение
 
 
 5. Выполнить миграции:
@@ -92,19 +65,165 @@ Admin зона django после установки доступна по адр
     docker compose exec backend python manage.py import_ingredients
     ```
 
-   И также очистить от ингредиентов:
-    ```bash
-    docker compose exec backend python manage.py clear_ingredients
-    ```
-
-8. Заполнить базу данных тегами (завтрак, обед и тд.):
+8. Заполнить базу данных тегами:
 
     ```bash
     docker compose exec backend python manage.py import_tags
     ```
 
-   И также очистить от тегов:
+## Стек технологий
+
+Веб-сервер: [![Nginx](https://img.shields.io/badge/-NGINX-464646?style=flat-square&logo=NGINX)](https://nginx.org/ru/)
+
+Frontend фреймворк: [![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
+
+Backend фреймворк:   [![Django](https://img.shields.io/badge/-Django-464646?style=flat-square&logo=Django)](https://www.djangoproject.com/)
+
+API фреймворк: [![Django REST Framework](https://img.shields.io/badge/-Django%20REST%20Framework-464646?style=flat-square&logo=Django%20REST%20Framework)](https://www.django-rest-framework.org/)
+
+База данных: [![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-464646?style=flat-square&logo=PostgreSQL)](https://www.postgresql.org/)
+
+## Как наполнить БД данными
+
+Наполнить базу данных ингредиентами:
+
     ```bash
-    docker compose exec backend python manage.py clear_tags
+    docker compose exec backend python manage.py import_ingredients
     ```
 
+Заполнить базу данных тегами:
+
+    ```bash
+    docker compose exec backend python manage.py import_tags
+    ```
+
+
+## Архитектура приложения 
+
+Веб-сервер nginx перенаправляет запросы клиентов к контейнерам frontend и backend, либо к хранилищам (volume) статики и файлов.
+
+Контейнер nginx взаимодействует с контейнером backend через gunicorn.
+
+Контейнер frontend взаимодействует с контейнером backend посредством API-запросов.
+
+## Документация к API
+
+Документация для API после установки доступна по адресу [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
+
+
+## Пример запросов/ответов
+
+#### Get all recipes
+
+```http
+  GET /api/recipes/
+```
+
+| Parameter | Type     | Description                                                            |
+| :-------- | :------- |:-----------------------------------------------------------------------|
+| `page` | `integer` | Номер страницы.                                                        |
+| `limit` | `integer` | Количество объектов на странице.                                       |
+| `is_favorited` | `integer` | Enum: `0` `1`. Показывать только рецепты, находящиеся в списке избранного. |
+| `is_in_shopping_cart` | `integer` | Enum: `0` `1`. Показывать только рецепты, находящиеся в списке покупок. |
+| `author` | `integer` | Показывать рецепты только автора с указанным id.                                                        |
+| `tags` | `Array of strings` | xample: `tags=lunch&tags=breakfast`. Показывать рецепты только с указанными тегами (по slug)                                            |
+
+<details>
+<summary>Response</summary>
+
+```json
+{
+  "count": 123,
+  "next": "http://foodgram.example.org/api/recipes/?page=4",
+  "previous": "http://foodgram.example.org/api/recipes/?page=2",
+  "results": [
+    {
+      "id": 0,
+      "tags": [
+        {
+          "id": 0,
+          "name": "Завтрак",
+          "slug": "breakfast"
+        }
+      ],
+      "author": {
+        "email": "user@example.com",
+        "id": 0,
+        "username": "string",
+        "first_name": "Вася",
+        "last_name": "Иванов",
+        "is_subscribed": false,
+        "avatar": "http://foodgram.example.org/media/users/image.png"
+      },
+      "ingredients": [
+        {
+          "id": 0,
+          "name": "Картофель отварной",
+          "measurement_unit": "г",
+          "amount": 1
+        }
+      ],
+      "is_favorited": true,
+      "is_in_shopping_cart": true,
+      "name": "string",
+      "image": "http://foodgram.example.org/media/recipes/images/image.png",
+      "text": "string",
+      "cooking_time": 1
+    }
+  ]
+}
+```
+</details>
+
+#### Get recipe
+
+```http
+  GET /api/recipes/{id}/
+```
+<details>
+<summary>Response</summary>
+
+```json
+{
+  "id": 0,
+  "tags": [
+    {
+      "id": 0,
+      "name": "Завтрак",
+      "slug": "breakfast"
+    }
+  ],
+  "author": {
+    "email": "user@example.com",
+    "id": 0,
+    "username": "string",
+    "first_name": "Вася",
+    "last_name": "Иванов",
+    "is_subscribed": false,
+    "avatar": "http://foodgram.example.org/media/users/image.png"
+  },
+  "ingredients": [
+    {
+      "id": 0,
+      "name": "Картофель отварной",
+      "measurement_unit": "г",
+      "amount": 1
+    }
+  ],
+  "is_favorited": true,
+  "is_in_shopping_cart": true,
+  "name": "string",
+  "image": "http://foodgram.example.org/media/recipes/images/image.png",
+  "text": "string",
+  "cooking_time": 1
+}
+```
+</details>
+
+| Parameter | Type     | Description                                            |
+| :-------- | :------- |:-------------------------------------------------------|
+| `id`      | `string` | **Required**. Уникальный идентификатор этого рецепта  |
+
+
+## Автор проекта
+[Полянский Павел](https://github.com/PavelPolyanskiy)

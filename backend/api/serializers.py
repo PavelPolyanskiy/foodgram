@@ -11,19 +11,6 @@ from .utils import Base64ImageField
 User = get_user_model()
 
 
-def generate_ingredient_recipe_objects(recipe, ingredients):
-    if not ingredients and recipe:
-        raise ValidationError('Отсутствует ингредиент или рецепт')
-    return [
-        IngredientRecipe(
-            recipe=recipe,
-            ingredient=ingredient.get('id'),
-            amount=ingredient.get('amount')
-        )
-        for ingredient in ingredients
-    ]
-
-
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для списка пользователей."""
     avatar = Base64ImageField(required=False, allow_null=True)
@@ -157,10 +144,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = set()
         for el in ingredients_data:
             ingredient = el.get('id')
-            amount = el.get('amount')
-
-            if not amount or amount < 1:
-                raise ValidationError('Количество должно быть не меньше 1')
 
             if ingredient in ingredients:
                 raise ValidationError(f'Ингредиет {ingredient} повторяется.')
@@ -182,36 +165,31 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients', [])
         tags = validated_data.pop('tags', [])
         recipe = Recipe.objects.create(**validated_data)
-
-        IngredientRecipe.objects.bulk_create(
-            generate_ingredient_recipe_objects(recipe, ingredients)
-        )
-
+        self._create_ingredients(recipe, ingredients)
         recipe.tags.set(tags)
-
         return recipe
 
     def update(self, instance, validated_data):
 
         ingredients = validated_data.pop('ingredients', [])
         tags = validated_data.pop('tags', [])
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
+        instance = super().update(instance, validated_data)
         instance.tags.set(tags)
-
         IngredientRecipe.objects.filter(recipe=instance).delete()
-        IngredientRecipe.objects.bulk_create(
-            generate_ingredient_recipe_objects(instance, ingredients)
-        )
-
-        instance.save()
-
+        self._create_ingredients(instance, ingredients)
         return instance
 
     def to_representation(self, instance):
         return RecipeReadSerializer(instance, context=self.context).data
+
+    def _create_ingredients(self, recipe, ingredients):
+        IngredientRecipe.objects.bulk_create(
+            IngredientRecipe(
+                recipe=recipe,
+                ingredient=ingredient.get('id'),
+                amount=ingredient.get('amount')
+            )
+            for ingredient in ingredients)
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):

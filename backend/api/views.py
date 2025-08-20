@@ -13,7 +13,7 @@ from recipe.models import (Favorite, Ingredient, Recipe,
                            ShoppingCart, Tag)
 from users.models import Follow
 from .filters import RecipeFilter
-from .paginators import CustomPagination
+from .paginators import FoodgramPagination
 from .permissions import AuthorOrReadOnly
 from .serializers import (AvatarSerializer, FavoriteSerializer,
                           FollowSerializer, IngredientSerializer,
@@ -26,7 +26,7 @@ User = get_user_model()
 
 
 class UserViewSet(djoser_views.UserViewSet):
-    pagination_class = CustomPagination
+    pagination_class = FoodgramPagination
     queryset = User.objects.all()
 
     def get_serializer_class(self):
@@ -51,14 +51,14 @@ class UserViewSet(djoser_views.UserViewSet):
         serializer_class=AvatarSerializer
     )
     def avatar(self, request):
-        if request.method == 'PUT':
-            serializer = AvatarSerializer(
-                instance=request.user,
-                data=request.data,
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = AvatarSerializer(
+            instance=request.user,
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @avatar.mapping.delete
     def delete_avatar(self, request):
@@ -104,7 +104,7 @@ class UserViewSet(djoser_views.UserViewSet):
         methods=['get'],
         permission_classes=(IsAuthenticated, ),
         url_path='subscriptions',
-        pagination_class=CustomPagination
+        pagination_class=FoodgramPagination
     )
     def subscriptions(self, request, id=None):
         queryset = User.objects.filter(following__user=request.user)
@@ -134,7 +134,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeReadSerializer
     queryset = Recipe.objects.all()
     http_method_names = ('get', 'post', 'patch', 'delete')
-    pagination_class = CustomPagination
+    pagination_class = FoodgramPagination
     permission_classes = (AuthorOrReadOnly, )
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
@@ -229,8 +229,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 def short_link_view_redirect(request, short_code):
-    print(request)
     recipe = get_object_or_404(Recipe, short_link=short_code)
+
     return HttpResponseRedirect(
         request.build_absolute_uri(f'/recipes/{recipe.id}/')
     )

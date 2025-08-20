@@ -35,7 +35,6 @@ class ShoppingCartDownloader:
             .annotate(total_amount=Sum('amount'))
             .order_by()  # так как в Meta модели прописан ordering
         )
-        print(ingredient_data)
 
         recipes_amount = ShoppingCart.objects.filter(user=request.user).count()
 
