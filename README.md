@@ -85,13 +85,13 @@ API фреймворк: [![Django REST Framework](https://img.shields.io/badge/-
 
 ## Как наполнить БД данными
 
-Наполнить базу данных ингредиентами:
+1. Наполнить базу данных ингредиентами:
 
     ```bash
     docker compose exec backend python manage.py import_ingredients
     ```
 
-Заполнить базу данных тегами:
+2. Заполнить базу данных тегами:
 
     ```bash
     docker compose exec backend python manage.py import_tags
