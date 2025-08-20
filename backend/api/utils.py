@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 
 from django.core.files.base import ContentFile
+from django.db.models import Sum
 from django.http import FileResponse
 from rest_framework import serializers
 
@@ -27,34 +28,30 @@ class ShoppingCartDownloader:
     @staticmethod
     def download_shopping_list(request):
 
-        shopping_cart = ShoppingCart.objects.filter(user=request.user)
-        ingredients_dict = {}
-        for cart_item in shopping_cart:
-            recipe_ingredients = IngredientRecipe.objects.filter(
-                recipe=cart_item.recipe
-            )
+        ingredient_data = (
+            IngredientRecipe.objects
+            .filter(recipe__shopping_recipe__user=request.user)
+            .values('ingredient__name', 'ingredient__measurement_unit')
+            .annotate(total_amount=Sum('amount'))
+        )
 
-            for recipe_ingredient in recipe_ingredients:
-                ingredient = recipe_ingredient.ingredient
-                key = (ingredient.name, ingredient.measurement_unit)
-                amount = recipe_ingredient.amount
-
-                if key in ingredients_dict:
-                    ingredients_dict[key] += amount
-                else:
-                    ingredients_dict[key] = amount
+        recipes_amount = ShoppingCart.objects.filter(user=request.user).count()
 
         head = [
             f'Список покупок {request.user.username}\n\n',
-            f'Количество рецептов в списке: {len(shopping_cart)}\n\n',
+            f'Количество рецептов в списке: {(recipes_amount)}\n\n',
             'Список ингредиентов к покупке:\n\n',
         ]
 
         shop_list = []
-        for key, value in ingredients_dict.items():
-            shop_list.append(f'{key[0]} - {value} {key[1]} \n')
 
-        response = '\n'.join(head + shop_list)
+        for item in ingredient_data:
+            name = item['ingredient__name']
+            unit = item['ingredient__measurement_unit']
+            amount = item['total_amount']
+            shop_list.append(f'{name} - {amount} {unit} \n')
+
+        response = ''.join(head + shop_list)
         byte_response = BytesIO(response.encode('utf-8'))
 
         return FileResponse(

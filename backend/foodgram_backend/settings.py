@@ -61,10 +61,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
-
-DATABASE = os.getenv('DATABASE', '')
+DATABASE = os.getenv('DATABASE', False)
 
 if DATABASE:
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+else:
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -75,15 +84,6 @@ if DATABASE:
             'PORT': os.getenv('DB_PORT', 5432)
         }
     }
-
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-                                # не забудь изменить env. на сервере
 
 AUTH_PASSWORD_VALIDATORS = [
     {

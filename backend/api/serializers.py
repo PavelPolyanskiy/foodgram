@@ -11,6 +11,19 @@ from .utils import Base64ImageField
 User = get_user_model()
 
 
+def generate_ingredient_recipe_objects(recipe, ingredients):
+    if not ingredients and recipe:
+        raise ValidationError('Отсутствует ингредиент или рецепт')
+    return [
+        IngredientRecipe(
+            recipe=recipe,
+            ingredient=ingredient.get('id'),
+            amount=ingredient.get('amount')
+        )
+        for ingredient in ingredients
+    ]
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для списка пользователей."""
     avatar = Base64ImageField(required=False, allow_null=True)
@@ -81,7 +94,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     author = UserSerializer()
     ingredients = IngredientInRecipeSerializer(
-        many=True, source='recipeingredients'
+        many=True, source='recipes'
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -136,15 +149,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        ings_data = data.get('ingredients')
+        ingredients_data = data.get('ingredients')
 
-        if not ings_data:
+        if not ingredients_data:
             raise ValidationError('Добавьте минимум 1 ингредиент.')
 
         ingredients = set()
-        for item in ings_data:
-            ingredient = item.get('id')
-            amount = item.get('amount')
+        for el in ingredients_data:
+            ingredient = el.get('id')
+            amount = el.get('amount')
 
             if not amount or amount < 1:
                 raise ValidationError('Количество должно быть не меньше 1')
@@ -157,7 +170,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         tags_data = data.get('tags')
         if not tags_data:
             raise ValidationError('Добавьте минимум 1 тег.')
-
         tags = set()
         for tag in tags_data:
             if tag in tags:
@@ -171,15 +183,11 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags', [])
         recipe = Recipe.objects.create(**validated_data)
 
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                recipe=recipe,
-                ingredient=ingredient.get('id'),
-                amount=ingredient.get('amount')
-            )
+        IngredientRecipe.objects.bulk_create(
+            generate_ingredient_recipe_objects(recipe, ingredients)
+        )
 
-        for tag in tags:
-            recipe.tags.add(tag)
+        recipe.tags.set(tags)
 
         return recipe
 
@@ -191,18 +199,13 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.tags.clear()
-
-        for tag in tags:
-            instance.tags.add(tag)
+        instance.tags.set(tags)
 
         IngredientRecipe.objects.filter(recipe=instance).delete()
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                recipe=instance,
-                ingredient=ingredient.get('id'),
-                amount=ingredient.get('amount')
-            )
+        IngredientRecipe.objects.bulk_create(
+            generate_ingredient_recipe_objects(instance, ingredients)
+        )
+
         instance.save()
 
         return instance
@@ -260,7 +263,7 @@ class FollowSerializer(serializers.ModelSerializer):
     """Сериализатор модели Follow."""
 
     user = serializers.PrimaryKeyRelatedField(
-        read_only=True,
+        queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )
     following = serializers.PrimaryKeyRelatedField(
@@ -271,22 +274,16 @@ class FollowSerializer(serializers.ModelSerializer):
         model = Follow
         fields = ('user', 'following')
 
-    def validate_following(self, value):
-        """Проверка, что подписка уникальна."""
-        if self.context.get('request').user == value:
-            raise ValidationError('Нельзя подписаться на самого себя.')
-
-        return value
-
-    def create(self, validated_data):
+    def validate(self, data):
         user = self.context.get('request').user
-        following = validated_data.get('following')
+        following = data.get('following')
         if Follow.objects.filter(user=user, following=following).exists():
-            raise ValidationError(
-                {'detail': 'Вы уже подписаны на этого пользователя.'}
-            )
+            raise ValidationError('Вы уже подписаны на этого пользователя')
 
-        return Follow.objects.create(user=user, following=following)
+        if user == following:
+            raise ValidationError('Нельзя подписаться на самого себя')
+
+        return data
 
     def to_representation(self, instance):
 
@@ -301,7 +298,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Favorite
-        fields = ('id', 'recipe', 'user')
+        fields = ('recipe', 'user')
         validators = [
             UniqueTogetherValidator(
                 queryset=Favorite.objects.all(),
@@ -319,7 +316,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingCart
-        fields = ('id', 'recipe', 'user')
+        fields = ('recipe', 'user')
         validators = [
             UniqueTogetherValidator(
                 queryset=ShoppingCart.objects.all(),

@@ -1,29 +1,31 @@
-from django.db.models import Q
+from django_filters.rest_framework import FilterSet, filters
+
+from recipe.models import Recipe
 
 
-def recipe_filter(model, request):
-    flag = request.user.is_authenticated
-    queryset = model.objects.all()
-    is_favorited = request.query_params.get('is_favorited')
-    is_in_shopping_cart = request.query_params.get(
-        'is_in_shopping_cart'
+class RecipeFilter(FilterSet):
+
+    tags = filters.AllValuesMultipleFilter(
+        field_name='tags__slug',
     )
-    author = request.query_params.get('author')
-    tags = request.query_params.getlist('tags')
+    is_favorited = filters.BooleanFilter(method='is_favorited_filter')
+    is_in_shopping_cart = filters.BooleanFilter(
+        method='is_in_shopping_cart_filter'
+    )
+    author = filters.CharFilter(field_name='author__id')
 
-    if is_favorited == '1' and flag:
-        queryset = queryset.filter(favorites__user=request.user)
+    class Meta:
+        model = Recipe
+        fields = ('tags', 'author', 'is_favorited', 'is_in_shopping_cart')
 
-    if is_in_shopping_cart == '1' and flag:
-        queryset = queryset.filter(shop_carts__user=request.user)
+    def is_favorited_filter(self, queryset, name, value):
+        user = self.request.user
+        if value and user.is_authenticated:
+            return queryset.filter(favorite_recipe__user=user)
+        return queryset
 
-    if author:
-        queryset = queryset.filter(author=author)
-
-    if tags:
-        query = Q()
-        for tag in tags:
-            query |= Q(tags__slug=tag)
-        queryset = queryset.filter(query).distinct()
-
-    return queryset
+    def is_in_shopping_cart_filter(self, queryset, name, value):
+        user = self.request.user
+        if value and user.is_authenticated:
+            return queryset.filter(shopping_recipe__user=user)
+        return queryset
