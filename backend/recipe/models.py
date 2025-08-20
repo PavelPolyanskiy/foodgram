@@ -63,7 +63,7 @@ class Ingredient(models.Model):
     def __str__(self):
         return (
             f'Ингредиент: {self.name}, '
-            f'д. измерения: {self.measurement_unit}'
+            f'Eд. измерения: {self.measurement_unit}'
         )
 
 
