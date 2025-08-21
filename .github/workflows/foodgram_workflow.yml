@@ -122,7 +122,7 @@ jobs:
     - name: Verify file exists locally
       run: |
         echo "Проверяем, что файл существует"
-        if [ -f "foodgram/docker-compose.production.yml" ]; then
+        if [ -f "docker-compose.production.yml" ]; then
           echo "Файл найден"
           ls -la foodgram/docker-compose.production.yml
           head -n 5 foodgram/docker-compose.production.yml
@@ -140,7 +140,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         source: "docker-compose.production.yml"
-        target: "foodgram"
+        target: "~/foodgram/"
         debug: true
         rm: false
     - name: Executing remote ssh commands to deploy
