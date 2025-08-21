@@ -1,1 +1,10 @@
-[{"name": "Завтрак", "slug": "breakfest"}, {"name": "Ужин", "slug": "dinner"}, {"name": "Обед", "slug": "lunch"}, {"name": "Перекус", "slug": "snack"}, {"name": "Сладкое", "slug": "sweet"}, {"name": "Острое", "slug": "hot"}, {"name": "Летнее", "slug": "summer"}, {"name": "Напитки", "slug": "drinks"}]
+[
+    {"name": "Завтрак", "slug": "breakfest"}, 
+    {"name": "Ужин", "slug": "dinner"}, 
+    {"name": "Обед", "slug": "lunch"}, 
+    {"name": "Перекус", "slug": "snack"}, 
+    {"name": "Сладкое", "slug": "sweet"}, 
+    {"name": "Острое", "slug": "hot"}, 
+    {"name": "Летнее", "slug": "summer"}, 
+    {"name": "Напитки", "slug": "drinks"}
+]

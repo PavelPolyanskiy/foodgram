@@ -1,0 +1,33 @@
+# import csv
+# import os
+
+# from django.conf import settings
+# from django.core.management.base import BaseCommand
+# from django.contrib.auth import get_user_model
+
+# from recipe.models import Ingredient
+
+# User = get_user_model()
+
+
+# class Command(BaseCommand):
+#     help = 'Импорт данных из CSV файлов'
+
+#     def handle(self, *args, **kwargs):
+#         data_dir = os.path.join(settings.BASE_DIR, 'data')
+
+#         file_data = self.__get_data_from_file(data_dir, 'ingredients.csv')
+#         for row in file_data:
+#             Ingredient.objects.update_or_create(
+#                 name=row['name'],
+#                 defaults={'measurement_unit': row['measurement_unit']})
+            
+#     def _create_user(self):
+#         User.objects.create(
+#             email='chef@foodgram.ru',
+#             username='autochef',
+#             first_name='Повар',
+#             last_name='Шеф'
+#         )
+    
+    
