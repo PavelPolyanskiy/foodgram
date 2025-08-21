@@ -17,10 +17,17 @@ class Command(BaseCommand):
         data_dir = os.path.join(settings.BASE_DIR, 'data')
 
         file_data = self.__get_data_from_file(data_dir, 'recipes.json')
+        self._create_user
+        author = User.objects.filter(username='autochef')
         for el in file_data:
             Recipe.objects.update_or_create(
-                author=el['name'],
-                slug=el['slug']
+                author=author,
+                slug=el['slug'],
+                ,
+                ,
+                ,
+                ,
+                ,
             )
 
     def _create_user(self):
