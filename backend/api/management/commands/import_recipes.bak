@@ -21,13 +21,11 @@
 #             Ingredient.objects.update_or_create(
 #                 name=row['name'],
 #                 defaults={'measurement_unit': row['measurement_unit']})
-            
+
 #     def _create_user(self):
 #         User.objects.create(
 #             email='chef@foodgram.ru',
 #             username='autochef',
 #             first_name='Повар',
 #             last_name='Шеф'
-#         )
-    
-    
+#
