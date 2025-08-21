@@ -32,17 +32,8 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(str(e)))
 
-    def _create_user(self):
-        User.objects.create(
-            email='chef@foodgram.ru',
-            username='autochef',
-            first_name='Повар',
-            last_name='Шеф'
-        )
-
     def _create_recipe(self, recipe_data):
         if not self.users.exists():
-            self._create_user()
             self.users = User.objects.all()
 
         tags = recipe_data.pop('tags')
