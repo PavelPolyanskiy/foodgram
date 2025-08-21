@@ -3,7 +3,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser import views as djoser_views
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -12,14 +12,15 @@ from rest_framework.response import Response
 from recipe.models import (Favorite, Ingredient, Recipe,
                            ShoppingCart, Tag)
 from users.models import Follow
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .paginators import FoodgramPagination
 from .permissions import AuthorOrReadOnly
 from .serializers import (AvatarSerializer, FavoriteSerializer,
                           FollowSerializer, IngredientSerializer,
                           RecipeCreateUpdateSerializer, RecipeReadSerializer,
-                          ShoppingCartSerializer, SubscriptionsSerializer,
-                          TagSerializer, UserSerializer)
+                          SubscriptionsSerializer, TagSerializer,
+                          UserSerializer, ShoppingCartSerializer)
+
 from .utils import ShoppingCartDownloader
 
 User = get_user_model()
@@ -124,10 +125,9 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    filterset_fields = ('name', )
-    search_fields = ('name', )
     pagination_class = None
+    filter_backends = (DjangoFilterBackend, )
+    filterset_class = IngredientFilter
 
 
 class RecipeViewSet(viewsets.ModelViewSet):

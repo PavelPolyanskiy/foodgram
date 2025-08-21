@@ -182,7 +182,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return RecipeReadSerializer(instance, context=self.context).data
 
-    def _create_ingredients(self, recipe, ingredients):
+    @staticmethod
+    def _create_ingredients(recipe, ingredients):
         IngredientRecipe.objects.bulk_create(
             IngredientRecipe(
                 recipe=recipe,

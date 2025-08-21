@@ -8,7 +8,7 @@ from recipe.models import Ingredient
 
 
 class Command(BaseCommand):
-    help = 'Импорт данных из JSON файлов'
+    help = 'Импорт данных по ингридиентов из JSON файла в БД'
 
     def handle(self, *args, **kwargs):
         data_dir = os.path.join(settings.BASE_DIR, 'data')
