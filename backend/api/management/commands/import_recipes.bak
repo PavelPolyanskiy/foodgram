@@ -22,12 +22,11 @@ class Command(BaseCommand):
         for el in file_data:
             Recipe.objects.update_or_create(
                 author=author,
-                slug=el['slug'],
-                ,
-                ,
-                ,
-                ,
-                ,
+                name=el['name'],
+                image=el['image'],
+                ingredients=el['ingredients'],
+                tags=el['tags'],
+                cooking_time=el['cooking_time'],
             )
 
     def _create_user(self):
