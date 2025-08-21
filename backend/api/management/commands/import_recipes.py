@@ -1,46 +1,46 @@
-import json
-import os
+# import json
+# import os
 
-from django.conf import settings
-from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
+# from django.conf import settings
+# from django.core.management.base import BaseCommand
+# from django.contrib.auth import get_user_model
 
-from recipe.models import Recipe
+# from recipe.models import Recipe
 
-User = get_user_model()
+# User = get_user_model()
 
 
-class Command(BaseCommand):
-    help = 'Импорт данных из CSV файлов'
+# class Command(BaseCommand):
+#     help = 'Импорт данных из CSV файлов'
 
-    def handle(self, *args, **kwargs):
-        data_dir = os.path.join(settings.BASE_DIR, 'data')
+#     def handle(self, *args, **kwargs):
+#         data_dir = os.path.join(settings.BASE_DIR, 'data')
 
-        file_data = self.__get_data_from_file(data_dir, 'recipes.json')
-        self._create_user
-        author = User.objects.filter(username='autochef')
-        for el in file_data:
-            Recipe.objects.update_or_create(
-                author=author,
-                name=el['name'],
-                image=el['image'],
-                ingredients=el['ingredients'],
-                tags=el['tags'],
-                cooking_time=el['cooking_time'],
-            )
+#         file_data = self.__get_data_from_file(data_dir, 'recipes.json')
+#         self._create_user
+#         author = User.objects.filter(username='autochef')
+#         for el in file_data:
+#             Recipe.objects.update_or_create(
+#                 author=author,
+#                 name=el['name'],
+#                 image=el['image'],
+#                 ingredients=el['ingredients'],
+#                 tags=el['tags'],
+#                 cooking_time=el['cooking_time'],
+#             )
 
-    def _create_user(self):
-        User.objects.create(
-            email='chef@foodgram.ru',
-            username='autochef',
-            first_name='Повар',
-            last_name='Шеф'
-        )
+#     def _create_user(self):
+#         User.objects.create(
+#             email='chef@foodgram.ru',
+#             username='autochef',
+#             first_name='Повар',
+#             last_name='Шеф'
+#         )
 
-    def __get_data_from_file(self, data_dir, file_name):
-        with open(
-            file=os.path.join(data_dir, file_name),
-            encoding='utf-8'
-        ) as file:
-            data = json.load(file)
-        return data
+#     def __get_data_from_file(self, data_dir, file_name):
+#         with open(
+#             file=os.path.join(data_dir, file_name),
+#             encoding='utf-8'
+#         ) as file:
+#             data = json.load(file)
+#         return data
